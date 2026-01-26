@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_ai_prompt_wizard_form" model="ir.ui.view">
+        <field name="name">ai.prompt.wizard.form</field>
+        <field name="model">ai.prompt.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Consulta a la IA">
+                <group>
+                    <field name="output_style" widget="radio" options="{'horizontal': true}"/>
+                    <field name="prompt" placeholder="Ej: ¿Qué órdenes están retrasadas?"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" string="Enviar" type="object" class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ai_prompt_wizard" model="ir.actions.act_window">
+        <field name="name">Consulta IA</field>
+        <field name="res_model">ai.prompt.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

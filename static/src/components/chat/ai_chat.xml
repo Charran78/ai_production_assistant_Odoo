@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="ai_production_assistant.AiChat" owl="1">
+        <div t-attf-class="o_ai_chat_container h-100 d-flex flex-column {{ state.darkMode ? 'o_ai_chat_dark' : 'bg-100' }}">
+            <!-- Header -->
+            <div t-attf-class="o_ai_chat_header p-3 border-bottom d-flex justify-content-between align-items-center shadow-sm {{ state.darkMode ? 'bg-dark border-secondary text-white' : 'bg-white' }}">
+                <div class="d-flex align-items-center">
+                    <div class="avatar bg-primary text-white rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 40px; height: 40px;">
+                        <i class="fa fa-robot fa-lg"/>
+                    </div>
+                    <div>
+                        <h5 t-attf-class="m-0 fw-bold {{ state.darkMode ? 'text-white' : 'text-dark' }}">Asistente de Producción</h5>
+                        <small class="text-success"><i class="fa fa-circle small me-1"/>Online (Ollama)</small>
+                    </div>
+                </div>
+                
+                <!-- Controls -->
+                <div class="d-flex gap-2 align-items-center">
+                    <!-- Dark Mode Toggle -->
+                    <button class="btn btn-sm btn-link text-decoration-none" t-on-click="toggleDarkMode">
+                        <i t-if="!state.darkMode" class="fa fa-moon-o fa-lg text-dark" title="Modo Oscuro"/>
+                        <i t-if="state.darkMode" class="fa fa-sun-o fa-lg text-warning" title="Modo Claro"/>
+                    </button>
+                
+                    <!-- Context Model Selector -->
+                    <select class="form-select form-select-sm" t-model="state.selectedContextModel" style="width: 180px;" title="Contexto de datos">
+                        <t t-foreach="state.availableContextModels" t-as="ctx" t-key="ctx.id">
+                            <option t-att-value="ctx.id"><t t-esc="ctx.name"/></option>
+                        </t>
+                    </select>
+
+                    <select class="form-select form-select-sm" t-model="state.outputStyle" style="width: 150px;" title="Estilo de respuesta">
+                        <option value="concise">Respuesta Rápida</option>
+                        <option value="table">Tabla de Datos</option>
+                        <option value="report">Informe Formal</option>
+                        <option value="plan">Plan de Acción</option>
+                    </select>
+                    
+                    <!-- Dynamic Model Selector -->
+                    <select class="form-select form-select-sm" t-model="state.selectedModel" style="width: 180px;">
+                        <t t-foreach="state.availableModels" t-as="model" t-key="model.id">
+                            <option t-att-value="model.name"><t t-esc="model.name"/></option>
+                        </t>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Chat Area -->
+            <div class="o_ai_chat_messages flex-grow-1 p-4 overflow-auto" style="scroll-behavior: smooth;">
+                <t t-foreach="state.messages" t-as="msg" t-key="msg_index">
+                    <div t-attf-class="d-flex mb-4 {{ msg.role === 'user' ? 'justify-content-end' : 'justify-content-start' }}">
+                        
+                        <!-- Avatar Assistant -->
+                        <div t-if="msg.role === 'assistant'" class="me-2 mt-auto">
+                            <div class="rounded-circle bg-200 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                🤖
+                            </div>
+                        </div>
+
+                        <!-- Bubble -->
+                        <div t-attf-class="p-3 shadow-sm {{ msg.role === 'user' ? 'bg-primary text-white rounded-tr-0' : (state.darkMode ? 'bg-dark-bubble text-light border-secondary rounded-tl-0' : 'bg-white text-dark border rounded-tl-0') }}" 
+                             style="max-width: 75%; border-radius: 1.2rem; min-width: 100px;">
+                            <!-- Improved whitespace handling for markdown-like text -->
+                            <div class="content" style="white-space: pre-wrap; word-wrap: break-word;">
+                                <t t-esc="msg.text"/>
+                            </div>
+                        </div>
+
+                        <!-- Avatar User -->
+                        <div t-if="msg.role === 'user'" class="ms-2 mt-auto">
+                            <div class="rounded-circle bg-300 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                👤
+                            </div>
+                        </div>
+                    </div>
+                </t>
+
+                <!-- Thinking Indicator -->
+                <div t-if="state.isThinking" class="d-flex justify-content-start mb-4">
+                    <div class="me-2 mt-auto">🤖</div>
+                    <div t-attf-class="border p-3 rounded-pill shadow-sm {{ state.darkMode ? 'bg-dark border-secondary' : 'bg-white' }}">
+                        <span class="typing-dots">
+                            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                        </span>
+                        <small class="ms-2 text-muted fst-italic">Pensando en <t t-esc="state.selectedModel"/>...</small>
+                    </div>
+                </div>
+
+                <!-- Scroll Anchor -->
+                <div t-ref="messagesEnd"></div>
+            </div>
+
+            <!-- Input Area -->
+            <div t-attf-class="o_ai_chat_footer p-3 border-top {{ state.darkMode ? 'bg-dark border-secondary' : 'bg-white' }}">
+                <div class="input-group input-group-lg shadow-sm">
+                    <input type="text" t-attf-class="form-control border-0 {{ state.darkMode ? 'bg-secondary text-white' : 'bg-light' }}" 
+                           placeholder="Escribe tu consulta sobre producción..." 
+                           t-model="state.input"
+                           t-on-keydown="_onKeydown"/>
+                    <button class="btn btn-primary px-4" type="button" t-on-click="sendMessage" t-att-disabled="state.isThinking">
+                        <i t-if="!state.isThinking" class="fa fa-paper-plane"/>
+                        <i t-if="state.isThinking" class="fa fa-spinner fa-spin"/>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

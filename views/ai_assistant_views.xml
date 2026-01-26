@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vista de Árbol (Lista de Sesiones) -->
+    <record id="view_ai_assistant_session_tree" model="ir.ui.view">
+        <field name="name">ai.assistant.session.tree</field>
+        <field name="model">ai.assistant.session</field>
+        <field name="arch" type="xml">
+            <tree string="Sesiones del Asistente" decoration-muted="not active">
+                <field name="name"/>
+                <field name="model_id"/>
+                <field name="create_date"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="active" widget="boolean_toggle"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Vista de Formulario (Interfaz de Chat) -->
+    <record id="view_ai_assistant_session_form" model="ir.ui.view">
+        <field name="name">ai.assistant.session.form</field>
+        <field name="model">ai.assistant.session</field>
+        <field name="arch" type="xml">
+            <form string="Asistente de Producción">
+                <header>
+                    <button name="action_ask_ai_async" string="Enviar Pregunta" type="object" class="btn-primary"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <widget name="web_ribbon" title="Archivado" bg_color="bg-danger" invisible="active"/>
+                        <field name="active" invisible="1"/>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only"/>
+                        <h1><field name="name" placeholder="Título de la conversación..."/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="model_id" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="model_ollama" options="{'no_create': True}"/>
+                        </group>
+                        <group>
+                            <field name="user_id" widget="many2one_avatar_user"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Chat" name="history">
+                            <field name="message_ids" mode="kanban" readonly="1" nolabel="1">
+                                <kanban create="false" delete="false">
+                                    <field name="role"/>
+                                    <field name="content"/>
+                                    <field name="state"/>
+                                    <field name="create_date"/>
+                                    <templates>
+                                        <t t-name="card">
+                                            <div t-attf-class="d-flex w-100 mb-2 #{record.role.raw_value == 'user' ? 'justify-content-end' : 'justify-content-start'}">
+                                                <div t-attf-class="p-3 shadow-sm rounded-3 #{record.role.raw_value == 'user' ? 'bg-primary text-white' : 'bg-light text-dark'}" 
+                                                     style="max-width: 85%; min-width: 200px; border-radius: 15px !important;">
+                                                    
+                                                    <div class="d-flex justify-content-between mb-1 small opacity-75 border-bottom pb-1" style="font-size: 0.8rem;">
+                                                        <strong>
+                                                            <t t-if="record.role.raw_value == 'user'">👤 Tú</t>
+                                                            <t t-else="">🤖 IA</t>
+                                                        </strong>
+                                                        <span t-if="record.state.raw_value == 'pending'" class="badge rounded-pill bg-warning text-dark">Escribiendo...</span>
+                                                        <field name="create_date" widget="relative_time" t-if="record.state.raw_value != 'pending'"/>
+                                                    </div>
+
+                                                    <div class="o_formatted_content mt-2">
+                                                        <field name="content" widget="html"/>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </t>
+                                    </templates>
+                                </kanban>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Vista Kanban para Mensajes (Estilo WhatsApp) -->
+    <record id="view_ai_assistant_message_kanban" model="ir.ui.view">
+        <field name="name">ai.assistant.message.kanban</field>
+        <field name="model">ai.assistant.message</field>
+        <field name="arch" type="xml">
+            <kanban create="false" delete="false">
+                <field name="role"/>
+                <field name="content"/>
+                <field name="create_date"/>
+                <templates>
+                    <t t-name="card">
+                        <div t-attf-class="d-flex w-100 mb-3 #{record.role.raw_value == 'user' ? 'justify-content-end' : 'justify-content-start'}">
+                            <div t-attf-class="card shadow-sm border-0 p-3 #{record.role.raw_value == 'user' ? 'bg-primary text-white' : 'bg-light text-dark'}" 
+                                 style="max-width: 80%; border-radius: 15px;">
+                                <div class="d-flex justify-content-between align-items-center mb-1 small opacity-75">
+                                    <strong><t t-esc="record.role.raw_value == 'user' ? 'Tú' : 'IA'"/></strong>
+                                    <field name="create_date" widget="relative_time"/>
+                                </div>
+                                <div class="o_formatted_content">
+                                    <field name="content" widget="html"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>    
+</odoo>

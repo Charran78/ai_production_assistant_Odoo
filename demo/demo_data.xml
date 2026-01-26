@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Centros de Trabajo -->
+        <record id="workcenter_assembly" model="mrp.workcenter">
+            <field name="name">Línea de Ensamblaje 1</field>
+            <field name="code">WC001</field>
+            <field name="resource_calendar_id" ref="resource.resource_calendar_std"/>
+        </record>
+
+        <record id="workcenter_painting" model="mrp.workcenter">
+            <field name="name">Cabina de Pintura</field>
+            <field name="code">WC002</field>
+            <field name="resource_calendar_id" ref="resource.resource_calendar_std"/>
+        </record>
+
+        <!-- Productos Componentes -->
+        <record id="product_leg" model="product.product">
+            <field name="name">Pata de Mesa Acero</field>
+            <field name="type">product</field>
+            <field name="standard_price">5.0</field>
+            <field name="list_price">12.0</field>
+        </record>
+
+        <record id="product_top" model="product.product">
+            <field name="name">Tablero Roble 120cm</field>
+            <field name="type">product</field>
+            <field name="standard_price">20.0</field>
+            <field name="list_price">45.0</field>
+        </record>
+
+        <record id="product_screw" model="product.product">
+            <field name="name">Juego de Tornillos M6</field>
+            <field name="type">product</field>
+            <field name="standard_price">1.0</field>
+            <field name="list_price">3.0</field>
+        </record>
+
+        <!-- Producto Final -->
+        <record id="product_table" model="product.product">
+            <field name="name">Mesa Industrial Roble</field>
+            <field name="type">product</field>
+            <field name="list_price">150.0</field>
+            <field name="route_ids" eval="[(6, 0, [ref('mrp.route_warehouse0_manufacture')])]"/>
+        </record>
+
+        <!-- Lista de Materiales (BoM) -->
+        <record id="bom_table" model="mrp.bom">
+            <field name="product_tmpl_id" ref="product_table_product_template"/>
+            <field name="product_qty">1.0</field>
+            <field name="type">normal</field>
+            <field name="bom_line_ids" eval="[
+                (0, 0, {'product_id': ref('product_leg'), 'product_qty': 4.0}),
+                (0, 0, {'product_id': ref('product_top'), 'product_qty': 1.0}),
+                (0, 0, {'product_id': ref('product_screw'), 'product_qty': 1.0})
+            ]"/>
+        </record>
+        
+        <!-- Órdenes de Fabricación (MOs) -->
+        <!-- MO 1: Confirmada (Pendiente) -->
+        <record id="mo_table_confirm" model="mrp.production">
+            <field name="product_id" ref="product_table"/>
+            <field name="product_qty">10.0</field>
+            <field name="bom_id" ref="bom_table"/>
+            <field name="date_deadline" eval="(DateTime.now() + timedelta(days=2))"/>
+        </record>
+        
+        <!-- MO 2: En Progreso (Retrasada) -->
+        <record id="mo_table_late" model="mrp.production">
+            <field name="product_id" ref="product_table"/>
+            <field name="product_qty">5.0</field>
+            <field name="bom_id" ref="bom_table"/>
+             <field name="date_deadline" eval="(DateTime.now() - timedelta(days=1))"/>
+        </record>
+
+         <!-- MO 3: Planificada para futuro -->
+        <record id="mo_table_future" model="mrp.production">
+            <field name="product_id" ref="product_table"/>
+            <field name="product_qty">25.0</field>
+            <field name="bom_id" ref="bom_table"/>
+            <field name="date_deadline" eval="(DateTime.now() + timedelta(days=15))"/>
+        </record>
+
+    </data>
+</odoo>

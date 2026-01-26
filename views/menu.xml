@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_ai_assistant_session" model="ir.actions.act_window">
+        <field name="name">Asistente IA</field>
+        <field name="res_model">ai.assistant.session</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Inicia una nueva consulta con el Asistente de Producción.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menú en la sección de Fabricación -->
+    <menuitem id="menu_ai_assistant_root" name="Asistente IA" parent="mrp.menu_mrp_root" sequence="100"/>
+    
+    <!-- Nuevo Chat con Streaming como opción principal -->
+    <menuitem id="menu_ai_chat_client" name="Chat IA" parent="menu_ai_assistant_root" action="action_ai_chat_client" sequence="1"/>
+    
+    <!-- Historial Clásico -->
+    <menuitem id="menu_ai_assistant_sessions" name="Historial" parent="menu_ai_assistant_root" action="action_ai_assistant_session" sequence="20"/>
+
+    <menuitem id="menu_ai_assistant_config" name="Configuración" parent="menu_ai_assistant_root" sequence="100"/>
+    <menuitem id="menu_ai_ollama_models" name="Modelos IA" parent="menu_ai_assistant_config" action="action_ai_ollama_model" sequence="10"/>
+    <menuitem id="menu_ai_vector_config" name="Conector Qdrant" parent="menu_ai_assistant_config" action="action_ai_vector_config" sequence="15"/>
+    <menuitem id="menu_sync_ollama_models" name="Sincronizar Modelos" parent="menu_ai_assistant_config" action="action_sync_ollama_models" sequence="20"/>
+</odoo>

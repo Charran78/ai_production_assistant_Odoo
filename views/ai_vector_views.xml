@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_ai_vector_config_tree" model="ir.ui.view">
+        <field name="name">ai.vector.config.tree</field>
+        <field name="model">ai.vector.config</field>
+        <field name="arch" type="xml">
+            <tree string="Configuración Qdrant">
+                <field name="name"/>
+                <field name="url"/>
+                <field name="collection_name"/>
+                <field name="active" widget="boolean_toggle"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_ai_vector_config_form" model="ir.ui.view">
+        <field name="name">ai.vector.config.form</field>
+        <field name="model">ai.vector.config</field>
+        <field name="arch" type="xml">
+            <form string="Configuración Qdrant">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="url"/>
+                            <field name="collection_name"/>
+                        </group>
+                        <group>
+                            <field name="api_key" password="True"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ai_vector_config" model="ir.actions.act_window">
+        <field name="name">Conector Qdrant</field>
+        <field name="res_model">ai.vector.config</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>
