@@ -4,11 +4,11 @@
         <field name="name">ai.ollama.model.tree</field>
         <field name="model">ai.ollama.model</field>
         <field name="arch" type="xml">
-            <tree string="Modelos IA">
+            <list string="Modelos IA">
                 <field name="name"/>
                 <field name="size_mb"/>
                 <field name="active" widget="boolean_toggle"/>
-            </tree>
+            </list>
         </field>
     </record>
 
@@ -38,7 +38,7 @@
     <record id="action_ai_ollama_model" model="ir.actions.act_window">
         <field name="name">Modelos IA (Ollama)</field>
         <field name="res_model">ai.ollama.model</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Sincroniza los modelos de tu servidor Ollama local.

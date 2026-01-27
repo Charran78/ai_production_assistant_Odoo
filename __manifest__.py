@@ -12,12 +12,12 @@
     'depends': ['mrp', 'stock', 'mail'],
     'data': [
         'security/ir.model.access.csv',
-        'data/ir_cron.xml', # Cargamos datos maestros primero
         'views/ai_assistant_views.xml',
         'views/ai_ollama_model_views.xml',
         'views/ai_chat_action.xml',
         'views/ai_vector_views.xml',
         'views/menu.xml',
+        'data/ir_cron.xml',
     ],
     'demo': [
         'demo/demo_data.xml',

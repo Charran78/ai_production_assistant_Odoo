@@ -4,3 +4,4 @@ access_ai_assistant_message,ai.assistant.message,model_ai_assistant_message,base
 access_ai_prompt_wizard,ai.prompt.wizard,model_ai_prompt_wizard,base.group_user,1,1,1,1
 access_ai_ollama_model,ai.ollama.model,model_ai_ollama_model,base.group_user,1,1,1,1
 access_ai_vector_config,ai.vector.config,model_ai_vector_config,base.group_user,1,1,1,1
+access_ai_pending_action,ai.pending.action,model_ai_pending_action,base.group_user,1,1,1,1

@@ -13,10 +13,37 @@ class AIPromptWizard(models.TransientModel):
         ('plan', 'Plan de Acción')
     ], string='Tipo de Respuesta', default='concise', required=True)
 
+    # NUEVO: Referencia a registro específico para contexto enfocado
+    context_ref = fields.Reference(
+        selection='_selection_target_model',
+        string="Referencia a Registro",
+        help="Opcional: Especifica un Cliente, Orden de Venta, etc., para enfocar la consulta."
+    )
+
+    # NUEVO: Selección de modelo específico
+    model_id = fields.Many2one(
+        'ai.ollama.model',
+        string='Modelo de IA',
+        domain=[('active', '=', True)],
+        help="Selecciona un modelo especializado del catálogo."
+    )
+
+    @api.model
+    def _selection_target_model(self):
+        """Devuelve modelos relevantes para el contexto."""
+        models = self.env['ir.model'].search([('transient', '=', False)], limit=100)
+        return [(model.model, model.name) for model in models]
+
     def action_confirm(self):
-        """ Este wizard permite una entrada de datos limpia y procesa la respuesta. """
+        """ Envía la consulta a la sesión pasando los nuevos parámetros. """
         active_id = self.env.context.get('active_id')
         if active_id:
             session = self.env['ai.assistant.session'].browse(active_id)
-            session.action_ask_ai(self.prompt, output_style=self.output_style)
+            # Pasamos estilo, contexto extra y modelo específico
+            session.action_ask_ai_async(
+                prompt=self.prompt, 
+                output_style=self.output_style,
+                context_ref=self.context_ref,
+                model_id=self.model_id
+            )
         return {'type': 'ir.actions.act_window_close'}

@@ -5,6 +5,8 @@ import logging
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 
+from ..services import ContextService, PromptOrchestrator, OllamaService, ResponseParser
+
 _logger = logging.getLogger(__name__)
 
 class AIVectorConfig(models.Model):
@@ -34,17 +36,16 @@ class AIAssistantSession(models.Model):
         domain=[('transient', '=', False)]
     )
     
-    # Cambiado a Many2one si tienes un modelo de configuración, 
-    # o mantenlo como Char si es texto libre. Aquí lo dejo como Char para evitar errores de relación.
     model_ollama = fields.Char(string='Modelo Ollama', default='llama3.2')
     message_ids = fields.One2many('ai.assistant.message', 'session_id', string='Mensajes')
 
-    def action_ask_ai_async(self):
+    def action_ask_ai_async(self, prompt=False, output_style='concise', context_ref=False, model_id=False):
         """ 
         Crea la estructura de mensajes y dispara el cron.
+        Acepta parámetros extendidos del wizard.
         """
         self.ensure_one()
-        prompt = self.name
+        final_prompt = prompt or self.name
         
         # 1. Crear el mensaje de la IA en estado 'pending'
         self.env['ai.assistant.message'].create({
@@ -52,8 +53,10 @@ class AIAssistantSession(models.Model):
             'role': 'assistant',
             'state': 'pending',
             'content': _("<i>Generando respuesta...</i>"),
-            'raw_prompt_stored': prompt,
-            'output_style_stored': 'concise'
+            'raw_prompt_stored': final_prompt,
+            'output_style_stored': output_style,
+            'context_ref': context_ref,
+            'model_ollama_id': model_id.id if model_id else False
         })
         
         # 2. Intentar ejecutar el cron inmediatamente
@@ -64,67 +67,62 @@ class AIAssistantSession(models.Model):
         except Exception as e:
             _logger.warning("No se pudo disparar el cron inmediatamente: %s", str(e))
 
-    def _get_dynamic_context(self, model_name=False):
+    @api.model
+    def perform_ai_action(self, action_data):
         """ 
-        Extrae datos del modelo de forma inteligente.
-        Si es mail.message, aplica filtros específicos para "bandeja de entrada".
+        Ejecuta una acción técnica sugerida por la IA tras aprobación del usuario.
+        MEJORA SEGURIDAD: Verifica permisos y valida campos.
         """
-        model_to_read = model_name or (self.model_id.model if self.model_id else False)
-        
-        if model_to_read == 'qdrant':
-             return self._query_vector_db(self.name) # Usa el título como query por defecto
-
-        if not model_to_read:
-            return "No hay contexto específico. Responde de forma general sobre Odoo."
-
         try:
-            domain = []
-            if model_to_read == 'mail.message':
-                domain = [('message_type', 'in', ['email', 'comment']), ('model', '!=', False)]
+            model_name = action_data.get('model')
+            function = action_data.get('function')
+            vals = action_data.get('vals', {})
             
-            records = self.env[model_to_read].search(domain, limit=15, order='id desc')
-            if not records:
-                return f"El modelo {model_to_read} no tiene datos actuales."
+            if not model_name or function not in ['create', 'write', 'update']:
+                return {'error': 'Estructura de acción inválida'}
 
-            data_list = []
-            for rec in records:
-                # Extracción inteligente de campos
-                info_parts = [rec.display_name or "ID: %s" % rec.id]
-                
-                # Campos prioritarios por tipo
-                relevant_fields = []
-                for fname, field in rec._fields.items():
-                    if fname in ['display_name', 'id', 'create_date', 'write_date']: continue
-                    if field.type in ['char', 'selection', 'float', 'monetary', 'date', 'datetime', 'text']:
-                        val = rec[fname]
-                        if val:
-                            label = field.string or fname
-                            # Truncar textos largos
-                            if field.type == 'text' and len(str(val)) > 100:
-                                val = str(val)[:100] + "..."
-                            relevant_fields.append(f"{label}: {val}")
-                
-                # Limitar a los 5 campos más relevantes para no saturar el prompt
-                info_parts.extend(relevant_fields[:6])
-                data_list.append(" | ".join(info_parts))
+            # SEGURIDAD: Verificar existencia del modelo
+            if model_name not in self.env:
+                return {'error': f'Modelo {model_name} no existe'}
 
-            return f"Datos actuales de {model_to_read} (Últimos 15):\n- " + "\n- ".join(data_list)
+            # SEGURIDAD: Verificar permisos de creación
+            Model = self.env[model_name]
+            if not Model.check_access_rights('create', raise_exception=False):
+                 return {'error': f'No tienes permisos para crear en {model_name}'}
+
+            if function == 'create':
+                # SEGURIDAD: Validar que los campos existan en el modelo
+                valid_vals = {}
+                for field_name, value in vals.items():
+                    if field_name in Model._fields:
+                        valid_vals[field_name] = value
+                    else:
+                        _logger.warning("Campo %s no existe en el modelo %s. Ignorado.", field_name, model_name)
+                
+                if not valid_vals:
+                     return {'error': 'No hay campos válidos para crear el registro'}
+
+                res = Model.create(valid_vals)
+                return {'success': True, 'res_id': res.id, 'display_name': res.display_name}
             
+            if function in ['write', 'update']:
+                # MEJORA: Buscar el ID en vals o usar el último si no viene (simplificado)
+                res_id = vals.get('res_id')
+                if not res_id:
+                    return {'error': 'Se requiere res_id para actualizar'}
+                
+                record = Model.browse(res_id)
+                if not record.exists():
+                    return {'error': f'Registro {res_id} no encontrado en {model_name}'}
+                
+                record.write(vals)
+                return {'success': True, 'res_id': record.id, 'display_name': record.display_name}
+
+            return {'error': 'Función no soportada'}
         except Exception as e:
-            _logger.error("Error leyendo contexto: %s", str(e))
-            return f"Error leyendo datos del modelo {model_to_read}."
+            _logger.error("Error ejecutando acción IA: %s", str(e))
+            return {'error': str(e)}
 
-    def _query_vector_db(self, query):
-        """ 
-        Placeholder para búsqueda semántica en Qdrant.
-        En una fase posterior se integrará qdrant-client.
-        """
-        config = self.env['ai.vector.config'].search([('active', '=', True)], limit=1)
-        if not config:
-            return "Qdrant no está configurado. No se puede realizar búsqueda vectorial."
-        
-        # Simulación de respuesta semántica
-        return f"Buscando en Qdrant ({config.collection_name}) para: {query}...\n(Integración vectorial en progreso)"
 
 class AIAssistantMessage(models.Model):
     _name = 'ai.assistant.message'
@@ -142,53 +140,81 @@ class AIAssistantMessage(models.Model):
 
     raw_prompt_stored = fields.Text(string="Prompt Original")
     output_style_stored = fields.Char(string="Estilo Solicitado", default='concise')
+    
+    # NUEVOS: Almacenar contexto extra y modelo específico
+    context_ref = fields.Reference(
+        selection='_selection_target_model',
+        string="Referencia Contexto"
+    )
+    model_ollama_id = fields.Many2one('ai.ollama.model', string='Modelo específico')
+    
+    # NUEVO: Guardar acciones sugeridas para ejecución posterior
+    extracted_actions = fields.Text(string="Acciones Extraídas (JSON)")
+
+    def _selection_target_model(self):
+        """Selección de modelos para contexto."""
+        models = self.env['ir.model'].search([('transient', '=', False)], limit=100)
+        return [(model.model, model.name) for model in models]
 
     @api.model
     def _cron_process_ai_queue(self):
-        """ Procesa la cola de mensajes pendientes llamando a Ollama """
+        """ Procesa la cola de mensajes pendientes usando servicios refactorizados. """
         pending_msgs = self.search([('state', '=', 'pending')], limit=5, order='create_date asc')
         
+        # Inicializar servicios
+        ctx_service = ContextService(self.env)
+        orchestrator = PromptOrchestrator(self.env)
+        ollama = OllamaService(self.env)
+        parser = ResponseParser()
+
         for msg in pending_msgs:
             try:
-                # 1. Obtener contexto de la sesión
-                context_str = msg.session_id._get_dynamic_context()
-                
-                system_prompt = f"""Actúa como experto en Odoo.
-                Contexto de datos:
-                {context_str}
-                
-                Instrucción: Sé profesional y usa formato HTML simple para la respuesta.
-                Si hay datos numéricos, relaciónalos."""
+                session = msg.session_id
+                model_name = session.model_id.model if session.model_id else False
 
-                # 2. Llamada HTTP a Ollama
-                payload = {
-                    "model": msg.session_id.model_ollama or "llama3.2",
-                    "prompt": f"{system_prompt}\n\nPregunta: {msg.raw_prompt_stored}",
-                    "stream": False,
-                    "options": {"temperature": 0.3}
-                }
+                # 1. Obtener contexto (ahora inyectando el context_ref si existe)
+                context_str = ctx_service.get_context(session)
+                if msg.context_ref:
+                     context_str += f"\n\nCONTEXTO ESPECÍFICO ADICIONAL:\n{msg.context_ref.display_name}"
+
+                # 2. Orquestar prompt (inyectando output_style)
+                system_prompt = orchestrator.get_system_prompt(
+                    context_str, 
+                    model_name=model_name,
+                    output_style=msg.output_style_stored
+                )
+                final_prompt = orchestrator.build_final_prompt(system_prompt, msg.raw_prompt_stored)
+
+                # 3. Llamar a Ollama (usando modelo específico si existe)
+                target_model = msg.model_ollama_id.name or session.model_ollama or "llama3.2"
+                raw_response = ollama.generate(
+                    model=target_model,
+                    prompt=final_prompt
+                )
                 
-                # Timeout largo para modelos lentos
-                res = requests.post("http://localhost:11434/api/generate", json=payload, timeout=120)
+                # 4. Parsear respuesta (Acciones y HTML)
+                clean_text, actions = parser.parse_actions(raw_response)
+                formatted_response = parser.format_html(clean_text)
                 
-                if res.status_code == 200:
-                    raw_response = res.json().get('response', '')
-                    # Formateo básico para Odoo
-                    formatted_response = raw_response.replace('\n', '<br/>')
-                    
-                    msg.write({
-                        'content': formatted_response,
-                        'state': 'done'
-                    })
-                else:
-                    msg.write({
-                        'state': 'error', 
-                        'content': f"Error en conexión con Ollama (Status: {res.status_code})"
-                    })
+                msg.write({
+                    'content': formatted_response,
+                    'state': 'done' if "Error" not in raw_response else 'error',
+                    'extracted_actions': json.dumps(actions) if actions else False
+                })
+
+                # NUEVO: Crear acciones pendientes para aprobación humana
+                if actions:
+                    for act_data in actions:
+                        self.env['ai.pending.action'].create({
+                            'message_id': msg.id,
+                            'model_name': act_data.get('model'),
+                            'function': act_data.get('function', 'create'),
+                            'vals_json': json.dumps(act_data.get('vals', {}))
+                        })
 
             except Exception as e:
-                _logger.error(f"Error IA: {str(e)}")
-                msg.write({'state': 'error', 'content': f"Error técnico: {str(e)}"})
+                _logger.error("Error en cron IA: %s", str(e))
+                msg.write({'state': 'error', 'content': f"Error crítico: {str(e)}"})
             
-            # Commit por cada mensaje procesado para evitar pérdida de datos
+            # Commit por cada mensaje procesado
             self.env.cr.commit()

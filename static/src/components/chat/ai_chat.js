@@ -30,7 +30,8 @@ export class AiChat extends Component {
                 { id: "product.template", name: "Catálogo de Productos" },
                 { id: "mail.message", name: "Bandeja de Entrada / Emails" },
                 { id: "qdrant", name: "🔍 Base de Conocimiento (Qdrant)" }
-            ]
+            ],
+            pendingAction: null // { model, function, vals, msgIndex }
         });
 
         this.messagesEndRef = useRef("messagesEnd");
@@ -121,10 +122,10 @@ export class AiChat extends Component {
                     assistantMsg.text += fullText.charAt(i);
                     i++;
                     setTimeout(typeWriter, speed);
-                    // Auto scroll as we type
                     this.scrollToBottom();
                 } else {
                     this.state.isThinking = false;
+                    this._checkForActions(assistantMsg.text, assistantMsgIndex);
                 }
             };
 
@@ -142,6 +143,62 @@ export class AiChat extends Component {
             console.error("AI Chat Error:", err);
             this.state.isThinking = false;
         }
+    }
+
+    _checkForActions(text, msgIndex) {
+        // Regex super-robusta: detecta ACTION_DATA con o sin dos puntos, y limpia ruidos logicamente
+        const regex = /\[\[ACTION_DATA[:\s]+({[\s\S]*?})\s*\]\]/;
+        const match = text.match(regex);
+        if (match) {
+            try {
+                // Sanitizamos el contenido por si el modelo metio bloques de codigo dentro del tag
+                let jsonStr = match[1].replace(/```json|```/g, "").trim();
+                const actionData = JSON.parse(jsonStr);
+                this.state.messages[msgIndex].pendingAction = actionData;
+                // Limpiamos el texto visual: quitamos el bloque entero de la respuesta
+                this.state.messages[msgIndex].text = text.replace(match[0], "").trim();
+                this.scrollToBottom();
+            } catch (e) {
+                console.error("Error parsing AI action JSON", e, match[1]);
+            }
+        }
+    }
+
+    async confirmAction(msgIndex) {
+        const msg = this.state.messages[msgIndex];
+        const actionData = msg.pendingAction;
+        if (!actionData) return;
+
+        this.state.isThinking = true;
+        try {
+            const result = await fetch("/ai_assistant/execute_action", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ params: { action_data: actionData } }),
+            });
+            const data = await result.json();
+            const res = data.result;
+
+            if (res.error) throw new Error(res.error);
+
+            msg.pendingAction = null;
+            this.state.messages.push({
+                role: "assistant",
+                text: `✅ Éxito: Registro **${res.display_name}** creado correctamente (ID: ${res.res_id}).`
+            });
+        } catch (err) {
+            this.notification.add(`Error: ${err.message}`, { type: "danger" });
+        } finally {
+            this.state.isThinking = false;
+        }
+    }
+
+    cancelAction(msgIndex) {
+        this.state.messages[msgIndex].pendingAction = null;
+        this.state.messages.push({
+            role: "assistant",
+            text: "Acción cancelada por el usuario."
+        });
     }
 
     _onKeydown(ev) {

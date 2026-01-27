@@ -3,72 +3,65 @@ import json
 import requests
 from odoo import http, _
 from odoo.http import request, Response
+from ..services import ContextService, PromptOrchestrator, OllamaService
+
+import logging
+_logger = logging.getLogger(__name__)
 
 class AiController(http.Controller):
 
     @http.route('/ai_assistant/ask_stream', type='http', auth='user', cors='*', csrf=False)
     def ask_stream(self, **kwargs):
-        """ Endpoint para streaming de respuestas desde Ollama. """
+        """ Endpoint para streaming de respuestas desde Ollama usando la nueva arquitectura de servicios. """
         
-        # Leer body JSON (porque fetch envía JSON, no form data)
+        # Leer body JSON
         try:
             data = json.loads(request.httprequest.data)
             prompt = data.get('prompt', '')
             output_style = data.get('output_style', 'concise')
-            model_name = data.get('model', 'llama3.2')
+            model_ollama = data.get('model', 'llama3.2')
+            target_model = data.get('target_model', 'mrp.production')
         except:
             prompt = kwargs.get('prompt', '')
             output_style = kwargs.get('output_style', 'concise')
-            model_name = kwargs.get('model', 'llama3.2')
+            model_ollama = kwargs.get('model', 'llama3.2')
+            target_model = kwargs.get('target_model', 'mrp.production')
 
         if not prompt:
             return Response("Prompt requerido", status=400)
 
-        # 1. Recuperar contexto de Odoo dinámicamente
-        session_obj = request.env['ai.assistant.session']
-        # Si no viene un modelo específico, intentamos con mrp.production como default "industrial"
-        target_model = data.get('target_model', 'mrp.production')
-        context_str = session_obj._get_dynamic_context(model_name=target_model)
+        # 1. Instanciar Servicios
+        ctx_service = ContextService(request.env)
+        orchestrator = PromptOrchestrator(request.env)
+        ollama = OllamaService(request.env)
 
-        # Estilos
-        style_instruction = ""
-        if output_style == 'table':
-            style_instruction = "FORMATO: Genera ÚNICAMENTE una tabla Markdown. No uses texto introductorio."
-        elif output_style == 'report':
-            style_instruction = "FORMATO: Genera un informe ejecutivo formal con encabezados."
-        elif output_style == 'plan':
-            style_instruction = "FORMATO: Genera un Plan de Acción (Checklist) paso a paso."
-        else:
-            style_instruction = "FORMATO: Sé conciso y directo."
+        # 2. Obtener Contexto
+        context_str = ctx_service._get_odoo_context(target_model, prompt)
 
-        system_prompt = f"""Eres un asistente experto en producción dentro de Odoo ERP.
-        DATOS DE ODOO (Contexto Real):
-        {context_str}
-        
-        INSTRUCCIONES CLAVE:
-        1. Responde basándote en los datos proporcionados.
-        2. {style_instruction}
-        3. Usa formato Markdown.
-        """
+        # 3. Construir System Prompt
+        system_prompt = orchestrator.get_system_prompt(
+            context_str, 
+            model_name=target_model, 
+            output_style=output_style
+        )
+        final_prompt = orchestrator.build_final_prompt(system_prompt, prompt)
 
-        # 2. Llamada síncrona a Ollama (Sin Streaming real para evitar problemas TLS/Chunked)
+        # 4. Llamar a Ollama (No-Streaming por ahora en este endpoint, pero usando el servicio)
         try:
-            payload = {
-                "model": model_name,
-                "prompt": f"{system_prompt}\n\nPregunta del Usuario: {prompt}\nRespuesta Asistente:",
-                "stream": False, 
-                "options": {
-                    "temperature": 0.3
-                }
-            }
-            
-            response = requests.post("http://localhost:11434/api/generate", json=payload, timeout=120)
-            if response.status_code == 200:
-                result = response.json()
-                final_text = result.get('response', '')
-                return Response(json.dumps({'response': final_text}), content_type='application/json')
-            else:
-                return Response(json.dumps({'error': f"Ollama Error: {response.status_code}"}), status=500, content_type='application/json')
-
+            _logger.info("AI PROMPT SENT: %s", final_prompt)
+            final_text = ollama.generate(model=model_ollama, prompt=final_prompt)
+            _logger.info("AI RESPONSE RECEIVED: %s", final_text)
+            return Response(json.dumps({'response': final_text}), content_type='application/json')
         except Exception as e:
             return Response(json.dumps({'error': str(e)}), status=500, content_type='application/json')
+
+    @http.route('/ai_assistant/execute_action', type='json', auth='user', cors='*', csrf=False)
+    def execute_action(self, **kwargs):
+        """ Ejecuta una acción sugerida por la IA tras confirmación del usuario. """
+        action_data = kwargs.get('action_data')
+        if not action_data:
+            return {'error': 'No action data provided'}
+        
+        # Centralizamos la ejecución en perform_ai_action de la sesión (o creamos una sesión temporal si no existe)
+        # Por simplicidad, usamos perform_ai_action de una búsqueda o del entorno
+        return request.env['ai.assistant.session'].perform_ai_action(action_data)
