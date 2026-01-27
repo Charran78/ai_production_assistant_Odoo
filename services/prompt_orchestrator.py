@@ -13,7 +13,8 @@ Reglas:
 1. Responde SOLO usando el CONTEXTO proporcionado.
 2. Formato: {output_style}.
 3. Si pides crear/actualizar algo, añade al FINAL: [[ACTION_DATA: {{"model": "mrp.production", "function": "create", "vals": {{"product_id": ID, "product_qty": QTY}}}}]]
-4. NO repitas estas instrucciones. NO saludes.
+4. IMPORTANTE: Usa SIEMPRE los IDs numéricos que aparecen entre corchetes [ID] en el CONTEXTO. No uses nombres de texto para IDs.
+5. NO repitas estas instrucciones. NO saludes.
 
 ### CONTEXTO ODOO:
 {context_str}

@@ -2,6 +2,7 @@
 import requests
 import json
 import logging
+import re
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 
@@ -81,32 +82,75 @@ class AIAssistantSession(models.Model):
             if not model_name or function not in ['create', 'write', 'update']:
                 return {'error': 'Estructura de acción inválida'}
 
-            # SEGURIDAD: Verificar existencia del modelo
             if model_name not in self.env:
                 return {'error': f'Modelo {model_name} no existe'}
 
-            # SEGURIDAD: Verificar permisos de creación
+            # SEGURIDAD: Verificar permisos
             Model = self.env[model_name]
-            if not Model.check_access_rights('create', raise_exception=False):
-                 return {'error': f'No tienes permisos para crear en {model_name}'}
+            try:
+                # Odoo 19: check_access(operation) reemplaza check_access_rights
+                Model.check_access('create' if function == 'create' else 'write')
+            except Exception:
+                return {'error': f'No tienes permisos en {model_name}'}
+
+            # Procesar VALS: Resolución avanzada de Many2one
+            valid_vals = {}
+            for field_name, value in vals.items():
+                if field_name not in Model._fields:
+                    _logger.warning("Campo %s no existe en %s. Ignorado.", field_name, model_name)
+                    continue
+                    
+                field = Model._fields[field_name]
+                
+                # Resolución de nombres a IDs para campos Many2one
+                if field.type == 'many2one' and isinstance(value, str):
+                    # 1. Intentar extraer ID de formato [ID] Nombre (inyectado por ContextService)
+                    match = re.search(r'\[(\d+)\]', value)
+                    if match:
+                        value = int(match.group(1))
+                    else:
+                        # 2. Búsqueda por nombre técnico (exacto o parcial)
+                        RelatedModel = self.env[field.comodel_name]
+                        res = RelatedModel.name_search(name=value, operator='=', limit=1)
+                        if not res:
+                            res = RelatedModel.name_search(name=value, operator='ilike', limit=1)
+                        
+                        if res:
+                            _logger.info("Resolviendo Many2one %s: '%s' -> ID %s", field_name, value, res[0][0])
+                            value = res[0][0]
+                
+                # Si sigue siendo string para un Many2one, abortar para evitar error SQL
+                if field.type == 'many2one' and isinstance(value, str):
+                     return {'error': f"No se encontró el registro '{value}' para el campo '{field.string}'"}
+
+                valid_vals[field_name] = value
+
+            # Lógica específica para mrp.production (Auto-completado de campos obligatorios en creación)
+            if model_name == 'mrp.production' and function == 'create':
+                if 'product_id' in valid_vals:
+                    product = self.env['product.product'].browse(valid_vals['product_id'])
+                    if product.exists():
+                        if 'product_uom_id' not in valid_vals:
+                            valid_vals['product_uom_id'] = product.uom_id.id
+                        if 'bom_id' not in valid_vals:
+                            # Intentar encontrar la lista de materiales por defecto
+                            bom = self.env['mrp.bom']._bom_find(product=product)
+                            if bom and product in bom:
+                                valid_vals['bom_id'] = bom[product].id
+                        # Asegurar tipo numérico para cantidad
+                        if 'product_qty' in valid_vals:
+                            try:
+                                valid_vals['product_qty'] = float(valid_vals['product_qty'])
+                            except:
+                                pass
 
             if function == 'create':
-                # SEGURIDAD: Validar que los campos existan en el modelo
-                valid_vals = {}
-                for field_name, value in vals.items():
-                    if field_name in Model._fields:
-                        valid_vals[field_name] = value
-                    else:
-                        _logger.warning("Campo %s no existe en el modelo %s. Ignorado.", field_name, model_name)
-                
                 if not valid_vals:
-                     return {'error': 'No hay campos válidos para crear el registro'}
-
+                     return {'error': 'No hay campos válidos para crear'}
                 res = Model.create(valid_vals)
                 return {'success': True, 'res_id': res.id, 'display_name': res.display_name}
             
             if function in ['write', 'update']:
-                # MEJORA: Buscar el ID en vals o usar el último si no viene (simplificado)
                 res_id = vals.get('res_id')
                 if not res_id:
                     return {'error': 'Se requiere res_id para actualizar'}
@@ -115,7 +159,11 @@ class AIAssistantSession(models.Model):
                 if not record.exists():
                     return {'error': f'Registro {res_id} no encontrado en {model_name}'}
                 
-                record.write(vals)
+                # Limpiar res_id de valid_vals para no pasarlo al write
+                if 'res_id' in valid_vals:
+                    del valid_vals['res_id']
+
+                record.write(valid_vals)
                 return {'success': True, 'res_id': record.id, 'display_name': record.display_name}
 
             return {'error': 'Función no soportada'}

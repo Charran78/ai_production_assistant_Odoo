@@ -47,7 +47,8 @@ class ContextService:
 
             data_list = []
             for rec in records:
-                info_parts = [rec.display_name or f"ID: {rec.id}"]
+                # MEJORA: Siempre incluir el ID técnico de forma explícita para el LLM
+                info_parts = [f"[{rec.id}] {rec.display_name or 'Sin Nombre'}"]
                 relevant_fields = []
                 # Priorizar campos importantes según el tipo
                 for fname, field in rec._fields.items():
