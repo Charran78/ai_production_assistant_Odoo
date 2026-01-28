@@ -258,6 +258,7 @@ Dimensiones: 384
 
 ### 📐 Diagrama de Arquitectura
 
+```markdown
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Interfaz Web  │────│    Controlador  │────│   Servicios     │
 │   (Odoo JS)     │    │   (Python)      │    │   (Contexto)    │
@@ -265,9 +266,9 @@ Dimensiones: 384
                                                        │
 ┌─────────────────┐    ┌─────────────────┐    ┌────────▼────────┐
 │   Base de       │    │   Ollama API    │    │   Qdrant        │
-│   Datos Odoo    │◀──▶│   (Local)       │    │   (Vectors)     │
+│   Datos Odoo    │◀─▶│   (Local)       │    │   (Vectors)     │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
-
+```
 ### 🔄 Flujo de Procesamiento
 
 ```mermaid
@@ -313,15 +314,16 @@ class AiPendingAction(models.Model):
 
 ## 🔧 Estructura del Proyecto
 
+```markdown
 ai_production_assistant/
 ├── 📁 controllers/
-│   ├── **init**.py
+│   ├── __init__.py
 │   └── main.py              # Endpoints REST API
 ├── 📁 data/
 │   ├── ai_chat_action.xml   # Acción de chat
 │   └── ir_cron.xml          # Cron jobs
 ├── 📁 models/
-│   ├── **init**.py
+│   ├── __init__.py
 │   ├── ai_assistant.py      # Modelo principal
 │   ├── ai_ollama.py         # Integración Ollama
 │   ├── ai_rag.py            # Sistema RAG
@@ -345,10 +347,11 @@ ai_production_assistant/
 │   └── ai_config_views.xml
 ├── 📁 security/
 │   └── ir.model.access.csv  # Permisos
-├── **init**.py
-├── **manifest**.py          # Metadata
+├── __init__.py
+├── __manifest__.py          # Metadata
 └── README.md               # Este archivo
 
+```
 ---
 
 ## 📊 Dashboard y Vistas
@@ -455,10 +458,10 @@ Este módulo está licenciado bajo **LGPL-3.0** - ver el archivo [LICENSE](LICEN
 
 **Resumen de permisos:**
 
-- ✅ Usar comercialmente
-- ✅ Modificar y distribuir
+- ❌ Usar comercialmente
+- ❌ Modificar y distribuir
 - ✅ Usar en software privativo
-- ✅ Patentar modificaciones
+- ❌ Patentar modificaciones
 - ❌ No incluye garantía
 - ❌ No asume responsabilidad
 
@@ -469,9 +472,9 @@ Este módulo está licenciado bajo **LGPL-3.0** - ver el archivo [LICENSE](LICEN
 **Pedro Mencías**  
 *Desarrollador Odoo & Especialista en IA*
 
-[![GitHub](https://img.shields.io/badge/GitHub-@tuusuario-181717?logo=github)](https://github.com/tuusuario)  
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Perfil-blue?logo=linkedin)](https://linkedin.com/in/tuperfil)  
-[![Email](https://img.shields.io/badge/Email-contacto-red?logo=gmail)](mailto:tu@email.com)
+[![GitHub](https://img.shields.io/badge/GitHub-@tuusuario-181717?logo=github)](https://github.com/Charran78)  
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Perfil-blue?logo=linkedin)](https://www.linkedin.com/in/pedro-menc%C3%ADas-68223336b/)  
+[![Email](https://img.shields.io/badge/Email-contacto-red?logo=gmail)](mailto:beyond.digital.web@gmail.com)
 
 ### 🤝 Contribuciones
 
