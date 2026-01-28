@@ -472,9 +472,9 @@ Este módulo está licenciado bajo **LGPL-3.0** - ver el archivo [LICENSE](LICEN
 **Pedro Mencías**  
 *Desarrollador Odoo & Especialista en IA*
 
-[![GitHub](https://img.shields.io/badge/GitHub-@tuusuario-181717?logo=github)](https://github.com/Charran78)  
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Perfil-blue?logo=linkedin)](https://www.linkedin.com/in/pedro-menc%C3%ADas-68223336b/)  
-[![Email](https://img.shields.io/badge/Email-contacto-red?logo=gmail)](mailto:beyond.digital.web@gmail.com)
+[![GitHub](https://img.shields.io/badge/GitHub-@Charran78-181717?logo=github)](https://github.com/Charran78)  
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-MiPerfil-blue?logo=linkedin)](https://www.linkedin.com/in/pedro-menc%C3%ADas-68223336b/)  
+[![Email](https://img.shields.io/badge/Email-Contacto-red?logo=gmail)](mailto:beyond.digital.web@gmail.com)
 
 ### 🤝 Contribuciones
 
