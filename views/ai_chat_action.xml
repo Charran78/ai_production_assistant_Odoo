@@ -1,8 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- Acción del Cliente para el Chat (RESTAURADA) -->
     <record id="action_ai_chat_client" model="ir.actions.client">
-        <field name="name">Asistente IA (Streaming)</field>
+        <field name="name">Chat IA</field>
         <field name="tag">ai_production_assistant.chat</field>
-        <field name="target">current</field>
+    </record>
+
+    <!-- Acción para Aprobar -->
+    <record id="action_ai_approve_pending" model="ir.actions.server">
+        <field name="name">Aprobar Acción IA</field>
+        <field name="model_id" ref="model_ai_assistant_session"/>
+        <field name="state">code</field>
+        <field name="code">
+action_id = env.context.get('pending_action_id')
+if action_id:
+    env['ai.pending.action'].browse(action_id).action_approve_and_execute()
+        </field>
+    </record>
+
+    <!-- Acción para Rechazar -->
+    <record id="action_ai_reject_pending" model="ir.actions.server">
+        <field name="name">Rechazar Acción IA</field>
+        <field name="model_id" ref="model_ai_assistant_session"/>
+        <field name="state">code</field>
+        <field name="code">
+action_id = env.context.get('pending_action_id')
+if action_id:
+    env['ai.pending.action'].browse(action_id).action_reject()
+        </field>
     </record>
 </odoo>

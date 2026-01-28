@@ -12,39 +12,248 @@ class AIOllamaModel(models.Model):
     _description = 'Modelo de Ollama (Catálogo)'
     _order = 'name asc'
 
-    name = fields.Char(string='Nombre en Ollama', required=True, index=True, help="Ej: 'llama3.2' o 'asistente-produccion'")
-    is_custom = fields.Boolean(string='Es Personalizado', compute='_compute_is_custom', store=True, help="True si fue creado con 'ollama create'")
-    size_mb = fields.Float(string='Tamaño (MB)', readonly=True, digits=(16,2))
-    details = fields.Text(string='Detalles Técnicos', readonly=True)
-    active = fields.Boolean(default=True)
+    # Nombre visible en la interfaz
+    display_name = fields.Char(string='Nombre para mostrar', compute='_compute_display_name', store=True)
     
-    # Campo CRÍTICO: asociar un Modelfile personalizado
-    modelfile = fields.Text(string='Modelfile Personalizado', 
-                            help="Contenido del Modelfile para crear una variante especializada. Déjalo vacío para usar el modelo base.")
-    custom_model_name = fields.Char(string='Nombre del Modelo Personalizado', 
-                                    help="Si se llena, se usará este nombre para crear una variante con el Modelfile. Ej: 'asistente-produccion'")
-
-
-
-    @api.depends('name')
-    def _compute_is_custom(self):
-        """Heurística simple: si no contiene ':' y no es un nombre conocido, probablemente sea custom."""
-        known_base_models = {'llama3.2', 'phi3', 'mistral', 'mixtral'}
+    # Nombre técnico en Ollama (el que se usa en la API)
+    name = fields.Char(
+        string='Nombre técnico', 
+        required=True, 
+        index=True,
+        help="Nombre exacto en Ollama. Ej: 'llama3.2', 'mistral', 'phi3:mini'"
+    )
+    
+    # Nombre personalizado opcional para variantes
+    custom_suffix = fields.Char(
+        string='Sufijo personalizado',
+        help="Sufijo para crear variante. Ej: '-produccion' para 'llama3.2-produccion'"
+    )
+    
+    # Propiedades del modelo
+    is_custom = fields.Boolean(
+        string='Es personalizado', 
+        compute='_compute_is_custom', 
+        store=True,
+        help="True si fue creado con 'ollama create' o tiene sufijo personalizado"
+    )
+    
+    size_mb = fields.Float(string='Tamaño (MB)', readonly=True, digits=(16,2))
+    details = fields.Text(string='Detalles técnicos', readonly=True)
+    active = fields.Boolean(string='Activo', default=True)
+    sequence = fields.Integer(string='Orden', default=10)
+    
+    # Modelfile para creación de variantes
+    modelfile = fields.Text(
+        string='Modelfile personalizado',
+        help="Contenido del Modelfile para crear una variante especializada con 'ollama create'"
+    )
+    
+    # Parámetros de generación
+    max_tokens = fields.Integer(
+        string='Tokens máximos',
+        default=2048,
+        help="Máximo número de tokens en la respuesta"
+    )
+    
+    temperature = fields.Float(
+        string='Temperatura',
+        default=0.7,
+        help="Controla la aleatoriedad (0.0 = determinístico, 1.0 = creativo)"
+    )
+    
+    top_p = fields.Float(
+        string='Top P',
+        default=0.9,
+        help="Controla la diversidad mediante nucleus sampling"
+    )
+    
+    # Especializaciones (para filtros en wizard)
+    is_production_optimized = fields.Boolean(
+        string='Optimizado para producción',
+        default=False
+    )
+    
+    is_sales_optimized = fields.Boolean(
+        string='Optimizado para ventas',
+        default=False
+    )
+    
+    is_general_purpose = fields.Boolean(
+        string='Propósito general',
+        default=True
+    )
+    
+    # Estadísticas
+    usage_count = fields.Integer(string='Veces usado', default=0, readonly=True)
+    last_used = fields.Datetime(string='Último uso', readonly=True)
+    
+    # Relación con el modelo de configuración
+    config_id = fields.Many2one(
+        'ai.ollama.config',
+        string='Configuración Ollama'
+    )
+    
+    @api.depends('name', 'custom_suffix')
+    def _compute_display_name(self):
+        """Genera un nombre amigable para mostrar en la interfaz."""
         for rec in self:
-            rec.is_custom = ':' not in rec.name and (rec.name not in known_base_models)
-
+            base_name = rec.name.split(':')[0]  # Remover tag si existe
+            if rec.custom_suffix:
+                rec.display_name = f"{base_name}{rec.custom_suffix}"
+            else:
+                rec.display_name = base_name
+    
+    @api.depends('custom_suffix', 'modelfile')
+    def _compute_is_custom(self):
+        """Determina si es un modelo personalizado."""
+        for rec in self:
+            rec.is_custom = bool(rec.custom_suffix) or bool(rec.modelfile)
+    
+    @api.constrains('name')
+    def _check_name_format(self):
+        """Valida que el nombre sea compatible con Ollama."""
+        for rec in self:
+            if not rec.name or len(rec.name.strip()) < 2:
+                raise ValidationError(_("El nombre del modelo debe tener al menos 2 caracteres."))
+    
+    def action_sync_with_ollama(self):
+        """Sincroniza este modelo específico con Ollama para obtener detalles."""
+        self.ensure_one()
+        
+        config = self.env['ir.config_parameter'].sudo()
+        ollama_url = config.get_param('ai.ollama_url', 'http://localhost:11434')
+        url = f"{ollama_url.rstrip('/')}/api/show"
+        
+        payload = {"name": self.name}
+        
+        try:
+            response = requests.post(url, json=payload, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            
+            # Actualizar detalles
+            self.write({
+                'size_mb': data.get('size', 0) / (1024 * 1024),  # Bytes a MB
+                'details': json.dumps({
+                    'format': data.get('format'),
+                    'family': data.get('family'),
+                    'parameter_size': data.get('parameter_size'),
+                    'quantization_level': data.get('quantization_level')
+                }, indent=2, ensure_ascii=False)
+            })
+            
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': _('Sincronización exitosa'),
+                    'message': _('Detalles del modelo actualizados'),
+                    'type': 'success',
+                    'sticky': False,
+                }
+            }
+            
+        except requests.exceptions.ConnectionError:
+            raise UserError(_("No se pudo conectar al servidor Ollama."))
+        except Exception as e:
+            raise UserError(_("Error sincronizando modelo: %s") % str(e))
+    
+    def action_create_custom_variant(self):
+        """Crea una variante personalizada del modelo en Ollama."""
+        self.ensure_one()
+        
+        if not self.modelfile:
+            raise UserError(_("Se requiere un Modelfile para crear una variante personalizada."))
+        
+        if not self.custom_suffix:
+            raise UserError(_("Se requiere un sufijo personalizado para la variante."))
+        
+        config = self.env['ir.config_parameter'].sudo()
+        ollama_url = config.get_param('ai.ollama_url', 'http://localhost:11434')
+        url = f"{ollama_url.rstrip('/')}/api/create"
+        
+        # Nombre de la variante: modelo_base-sufijo
+        variant_name = f"{self.name.split(':')[0]}{self.custom_suffix}"
+        
+        # Modelfile con FROM explícito
+        full_modelfile = f"FROM {self.name}\n{self.modelfile}"
+        
+        payload = {
+            "name": variant_name,
+            "modelfile": full_modelfile,
+            "stream": False
+        }
+        
+        try:
+            _logger.info("Creando variante personalizada: %s", variant_name)
+            response = requests.post(url, json=payload, timeout=300)  # 5 minutos timeout
+            
+            if response.status_code == 200:
+                # Actualizar el nombre técnico a la variante
+                self.name = variant_name
+                
+                return {
+                    'type': 'ir.actions.client',
+                    'tag': 'display_notification',
+                    'params': {
+                        'title': _('Variante creada'),
+                        'message': _('Modelo personalizado "%s" creado exitosamente.') % variant_name,
+                        'type': 'success',
+                        'sticky': False,
+                    }
+                }
+            else:
+                raise UserError(_("Ollama respondió con error: %s") % response.text)
+                
+        except requests.exceptions.ConnectionError:
+            raise UserError(_("No se pudo conectar al servidor Ollama."))
+        except Exception as e:
+            raise UserError(_("Error creando variante: %s") % str(e))
+    
+    def action_pull_model(self):
+        """Descarga el modelo desde Ollama Hub si no está disponible localmente."""
+        self.ensure_one()
+        
+        config = self.env['ir.config_parameter'].sudo()
+        ollama_url = config.get_param('ai.ollama_url', 'http://localhost:11434')
+        url = f"{ollama_url.rstrip('/')}/api/pull"
+        
+        payload = {"name": self.name, "stream": False}
+        
+        try:
+            response = requests.post(url, json=payload, timeout=600)  # 10 minutos timeout
+            
+            if response.status_code == 200:
+                return {
+                    'type': 'ir.actions.client',
+                    'tag': 'display_notification',
+                    'params': {
+                        'title': _('Descarga iniciada'),
+                        'message': _('La descarga del modelo "%s" ha comenzado. Revisa los logs de Ollama.') % self.name,
+                        'type': 'warning',
+                        'sticky': False,
+                    }
+                }
+            else:
+                raise UserError(_("Ollama respondió con error: %s") % response.text)
+                
+        except requests.exceptions.ConnectionError:
+            raise UserError(_("No se pudo conectar al servidor Ollama."))
+        except Exception as e:
+            raise UserError(_("Error iniciando descarga: %s") % str(e))
+    
     @api.model
-    def action_sync_models(self):
-        """Sincroniza modelos desde el servidor Ollama configurado."""
+    def action_sync_all_models(self):
+        """Sincroniza todos los modelos disponibles en Ollama (acción global)."""
         config = self.env['ir.config_parameter'].sudo()
         ollama_url = config.get_param('ai.ollama_url', 'http://localhost:11434')
         url = f"{ollama_url.rstrip('/')}/api/tags"
         
-        _logger.info("Sincronizando modelos desde %s", url)
+        _logger.info("Sincronizando todos los modelos desde %s", url)
         
         try:
             response = requests.get(url, timeout=30)
-            response.raise_for_status() 
+            response.raise_for_status()
             data = response.json()
             models_data = data.get('models', [])
             
@@ -55,38 +264,96 @@ class AIOllamaModel(models.Model):
                 name = model_info.get('name')
                 if not name:
                     continue
-                    
+                
                 fetched_names.add(name)
                 size = model_info.get('size', 0) / (1024 * 1024)  # Bytes a MB
-                details = json.dumps(model_info.get('details', {}), indent=2)
                 
                 if name in existing_models:
                     existing_models[name].write({
                         'size_mb': size,
-                        'details': details,
                         'active': True
                     })
                 else:
                     self.create({
                         'name': name,
                         'size_mb': size,
-                        'details': details
+                        'details': json.dumps(model_info, indent=2, ensure_ascii=False)
                     })
             
-            # Desactivar modelos que ya no están en Ollama
+            # Desactivar modelos que ya no existen en Ollama
             missing = set(existing_models.keys()) - fetched_names
             for name in missing:
                 existing_models[name].write({'active': False})
             
-            _logger.info("Sincronización completada. %s modelos encontrados.", len(models_data))
-            return {'model_count': len(models_data), 'deactivated': len(missing)}
+            model_count = len(models_data)
+            _logger.info("Sincronización completada. %s modelos encontrados.", model_count)
+            
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': _('Sincronización completada'),
+                    'message': _('%s modelos sincronizados desde Ollama.') % model_count,
+                    'type': 'success',
+                    'sticky': False,
+                }
+            }
             
         except requests.exceptions.ConnectionError:
             _logger.error("No se pudo conectar a Ollama en %s", url)
-            raise UserError(_("No se pudo conectar con Ollama. Verifica que el servidor esté ejecutándose."))
-        except requests.exceptions.Timeout:
-            _logger.error("Timeout al conectar con Ollama")
-            raise UserError(_("Timeout al conectar con Ollama. El servidor puede estar lento."))
+            raise UserError(_("No se pudo conectar con Ollama. Verifica que el servidor esté ejecutándose en %s.") % ollama_url)
         except Exception as e:
             _logger.exception("Error inesperado sincronizando modelos")
             raise UserError(_("Error sincronizando modelos: %s") % str(e))
+    
+    def increment_usage(self):
+        """Incrementa el contador de uso y actualiza la última fecha de uso."""
+        self.write({
+            'usage_count': self.usage_count + 1,
+            'last_used': fields.Datetime.now()
+        })
+    
+    @api.model
+    def get_default_models(self):
+        """Crea modelos por defecto si no existen (para post_init_hook)."""
+        default_models = [
+            {
+                'name': 'llama3.2',
+                'display_name': 'Llama 3.2',
+                'max_tokens': 4096,
+                'temperature': 0.7,
+                'is_general_purpose': True,
+                'sequence': 10,
+            },
+            {
+                'name': 'mistral',
+                'display_name': 'Mistral 7B',
+                'max_tokens': 8192,
+                'temperature': 0.8,
+                'is_general_purpose': True,
+                'is_production_optimized': True,
+                'sequence': 20,
+            },
+            {
+                'name': 'phi3:mini',
+                'display_name': 'Phi-3 Mini',
+                'max_tokens': 2048,
+                'temperature': 0.7,
+                'is_general_purpose': True,
+                'sequence': 30,
+            },
+            {
+                'name': 'codellama',
+                'display_name': 'Code Llama',
+                'max_tokens': 4096,
+                'temperature': 0.2,
+                'is_general_purpose': True,
+                'sequence': 40,
+            }
+        ]
+        
+        for model_data in default_models:
+            existing = self.search([('name', '=', model_data['name'])], limit=1)
+            if not existing:
+                self.create(model_data)
+                _logger.info("Modelo por defecto creado: %s", model_data['name'])

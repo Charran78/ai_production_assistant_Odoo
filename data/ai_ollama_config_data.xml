@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="ai_ollama_config_default" model="ai.ollama.config">
+        <field name="name">Servidor Local</field>
+        <field name="url">http://localhost:11434</field>
+        <field name="timeout">120</field>
+        <field name="active">True</field>
+    </record>
+</odoo>

@@ -65,8 +65,28 @@
                                                         <field name="create_date" widget="relative_time" t-if="record.state.raw_value != 'pending'"/>
                                                     </div>
 
-                                                    <div class="o_formatted_content mt-2">
+                                                    <div class="o_formatted_content mt-2 mb-3">
                                                         <field name="content" widget="html"/>
+                                                    </div>
+
+                                                    <!-- LISTA DE ACCIONES PENDIENTES (MODO ROBUSTO) -->
+                                                    <div t-if="record.role.raw_value == 'assistant' and record.pending_action_ids" class="mt-3">
+                                                        <field name="pending_action_ids" readonly="0">
+                                                            <list create="false" delete="false" edit="false" no_open="true">
+                                                                <field name="display_name_suggested" string="Acción"/>
+                                                                <field name="state" widget="badge" 
+                                                                       decoration-warning="state == 'pending'"
+                                                                       decoration-success="state == 'executed'"
+                                                                       decoration-danger="state == 'error'"
+                                                                       decoration-info="state == 'rejected'"/>
+                                                                <button name="action_approve_and_execute" type="object" 
+                                                                        string="Aprobar" class="btn-success"
+                                                                        invisible="state != 'pending'"/>
+                                                                <button name="action_reject" type="object" 
+                                                                        string="Rechazar" class="btn-outline-danger"
+                                                                        invisible="state != 'pending'"/>
+                                                            </list>
+                                                        </field>
                                                     </div>
                                                 </div>
                                             </div>

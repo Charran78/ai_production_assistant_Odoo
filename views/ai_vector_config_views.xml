@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- List view for ai.vector.config -->
+    <record id="view_ai_vector_config_list" model="ir.ui.view">
+        <field name="name">ai.vector.config.list</field>
+        <field name="model">ai.vector.config</field>
+        <field name="arch" type="xml">
+            <list string="Configuraciones Vectoriales (Qdrant)">
+                <field name="name"/>
+                <field name="url"/>
+                <field name="collection_name"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form view for ai.vector.config -->
+    <record id="view_ai_vector_config_form" model="ir.ui.view">
+        <field name="name">ai.vector.config.form</field>
+        <field name="model">ai.vector.config</field>
+        <field name="arch" type="xml">
+            <form string="Configuración de Base Vectorial">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Nombre de configuración"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Configuración Qdrant">
+                            <field name="url" placeholder="http://localhost:6333"/>
+                            <field name="collection_name" placeholder="odoo_documents"/>
+                            <field name="api_key" password="True"/>
+                            <field name="active"/>
+                        </group>
+                        <group string="Información">
+                            <!-- CORREGIDO: Cambiado label por div con clase o_form_label -->
+                            <div class="o_form_label" string="La búsqueda vectorial está en desarrollo"/>
+                            <div class="alert alert-info" role="alert">
+                                <strong>Nota:</strong> Esta funcionalidad requiere un servidor Qdrant en ejecución.
+                            </div>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action for ai.vector.config -->
+    <record id="action_ai_vector_config" model="ir.actions.act_window">
+        <field name="name">Configuraciones Vectoriales</field>
+        <field name="res_model">ai.vector.config</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Configura la conexión con Qdrant para búsqueda vectorial.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu item (opcional) -->
+    <menuitem id="menu_ai_vector_config"
+              name="Configuración Qdrant"
+              parent="menu_ai_assistant_root"
+              action="action_ai_vector_config"
+              sequence="20"/>
+</odoo>

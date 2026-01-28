@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Asistente de Producción IA (Ollama) para Odoo</title>
+      <!-- Estilos básicos, similares a los de Odoo -->
+      <style>
+            * {
+                  margin: 0;
+                  padding: 0;
+                  box-sizing: border-box;
+                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                  color: #4c4c4c;
+                  line-height: 1.6;
+            }
+
+            body {
+                  background: #f7f7f7;
+                  padding: 20px;
+                  max-width: 900px;
+                  margin: 0 auto;
+            }
+
+            .container {
+                  background: #fff;
+                  border-radius: 8px;
+                  padding: 30px;
+                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            }
+
+            h1,
+            h2,
+            h3 {
+                  color: #714B67;
+                  /* Un color distintivo, cámbialo si quieres */
+                  margin: 1.2em 0 0.5em 0;
+                  border-bottom: 2px solid #f0eeee;
+                  padding-bottom: 0.3em;
+            }
+
+            h1 {
+                  font-size: 2.2em;
+                  border: none;
+            }
+
+            h2 {
+                  font-size: 1.6em;
+            }
+
+            h3 {
+                  font-size: 1.3em;
+            }
+
+            p {
+                  margin-bottom: 1em;
+            }
+
+            ul,
+            ol {
+                  padding-left: 1.5em;
+                  margin-bottom: 1em;
+            }
+
+            li {
+                  margin-bottom: 0.5em;
+            }
+
+            .highlight {
+                  background-color: #fff5e6;
+                  border-left: 4px solid #ff9900;
+                  padding: 15px;
+                  margin: 20px 0;
+            }
+
+            .screenshot {
+                  text-align: center;
+                  margin: 30px 0;
+                  border: 1px solid #ddd;
+                  border-radius: 5px;
+                  padding: 10px;
+                  background: #fafafa;
+            }
+
+            .screenshot img {
+                  max-width: 70%;
+                  height: auto;
+                  border-radius: 4px;
+                  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }
+
+            .screenshot .caption {
+                  font-style: italic;
+                  color: #777;
+                  margin-top: 10px;
+                  font-size: 0.9em;
+            }
+
+            .features-grid {
+                  display: grid;
+                  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                  gap: 20px;
+                  margin: 25px 0;
+            }
+
+            .feature-card {
+                  background: #f9f9f9;
+                  padding: 20px;
+                  border-radius: 6px;
+                  border-top: 4px solid #714B67;
+            }
+
+            .footer {
+                  text-align: center;
+                  margin-top: 40px;
+                  padding-top: 20px;
+                  border-top: 1px solid #eee;
+                  color: #888;
+                  font-size: 0.9em;
+            }
+
+            code {
+                  background: #f1f1f1;
+                  padding: 2px 6px;
+                  border-radius: 3px;
+                  font-family: monospace;
+                  font-size: 0.95em;
+            }
+
+            a {
+                  color: #17a2b8;
+                  text-decoration: none;
+            }
+
+            a:hover {
+                  text-decoration: underline;
+            }
+      </style>
+</head>
+
+<body>
+      <div class="container">
+            <!-- CABECERA PRINCIPAL -->
+            <header style="text-align: center; margin-bottom: 40px;">
+                  <h1>🧠 Asistente de Producción IA (Ollama)</h1>
+                  <p style="font-size: 1.2em; color: #666;">
+                        <strong>Supervisión ejecutiva y automatización inteligente para Fabricación Odoo.</strong><br>
+                        Integra un modelo de lenguaje local, privado y especializado directamente en tu ERP.
+                  </p>
+            </header>
+
+            <!-- CAPTURA DE PANTALLA PRINCIPAL -->
+            <div class="screenshot">
+                  <!-- REEMPLAZA 'images/portada_screenshot.png' con el nombre real de tu imagen principal -->
+                  <img src="images/portada_screenshot.png" alt="Vista general del Asistente IA en Odoo">
+                  <p class="caption">Figura 1: El asistente integrado en la vista de Fabricación, listo para consultar.
+                  </p>
+            </div>
+
+            <!-- RESUMEN DEL MÓDULO -->
+            <div class="highlight">
+                  <p><strong>💡 ¿Por qué este módulo?</strong> Este asistente permite a directivos (CEO, CTO, gerentes
+                        de planta) consultar datos en tiempo real, analizar tendencias y automatizar tareas manteniendo
+                        la <strong>privacidad total de los datos</strong>, ya que usa Ollama local. No depende de APIs
+                        externas.</p>
+            </div>
+
+            <!-- CARACTERÍSTICAS PRINCIPALES -->
+            <h2>✨ Características Principales</h2>
+            <div class="features-grid">
+                  <div class="feature-card">
+                        <h3>🤖 Asistente Especializado</h3>
+                        <p>Chat contextual dentro de Odoo, entrenado para entender jerga de producción (órdenes de
+                              fabricación, stock, retrasos).</p>
+                  </div>
+                  <div class="feature-card">
+                        <h3>🔒 IA Local & Privada</h3>
+                        <p>Utiliza modelos como Llama 3, Phi-3 o Gemma a través de Ollama. Tus datos
+                              <strong>nunca</strong> salen de tu servidor.
+                        </p>
+                  </div>
+                  <div class="feature-card">
+                        <h3>⚡ Automatización Híbrida</h3>
+                        <p>No solo responde, sugiere acciones (crear órdenes, ajustar stock). El humano tiene la última
+                              palabra con un sistema de aprobación.</p>
+                  </div>
+                  <div class="feature-card">
+                        <h3>📊 Análisis Contextual</h3>
+                        <p>Cruza datos vivos de múltiples módulos (Fabricación, Ventas, Inventario) para dar respuestas
+                              ejecutivas integrales.</p>
+                  </div>
+            </div>
+
+            <!-- CÓMO FUNCIONA / FLUJO DE TRABAJO -->
+            <h2>🛠️ ¿Cómo Funciona?</h2>
+            <ol>
+                  <li><strong>Configuración</strong>: Conecta el módulo a tu servidor Ollama local (un simple parámetro
+                        en Odoo).</li>
+                  <li><strong>Consulta</strong>: Desde cualquier vista de Fabricación, usa el wizard para preguntar en
+                        lenguaje natural (ej: "¿Qué órdenes van retrasadas?").</li>
+                  <li><strong>Análisis</strong>: La IA recupera datos del ERP, los analiza y devuelve una respuesta
+                        clara (texto, tabla o informe).</li>
+                  <li><strong>Acción (Opcional)</strong>: Si la IA sugiere una acción (ej: "Crear orden de compra"), se
+                        envía a una <strong>cola de aprobación humana</strong> antes de ejecutarse en Odoo.</li>
+            </ol>
+
+            <!-- MÁS CAPTURAS DE PANTALLA -->
+            <div class="screenshot">
+                  <!-- REEMPLAZA 'images/modal_wizard.png' con tu segunda captura -->
+                  <img src="images/modal_wizard.png" alt="Modal para realizar consultas al asistente">
+                  <p class="caption">Figura 2: Wizard de consulta con selección de estilo de respuesta (informe, tabla,
+                        plan).</p>
+            </div>
+
+            <!-- REQUISITOS E INSTALACIÓN -->
+            <h2>📦 Requisitos e Instalación</h2>
+            <p>El módulo requiere:</p>
+            <ul>
+                  <li><strong>Odoo 19.0</strong> (compatible con versiones 18.x y 17.x puede requerir ajustes).</li>
+                  <li>Módulos de Odoo: <code>mrp</code>, <code>stock</code>, <code>mail</code>.</li>
+                  <li><strong>Servidor Ollama</strong> ejecutándose localmente o en una red accesible. <a
+                              href="https://ollama.com/" target="_blank">(Guía de instalación)</a>.</li>
+                  <li>Al menos un modelo de lenguaje descargado en Ollama (recomendado: <code>llama3.2:3b</code>,
+                        o <code>gemma3:4b</code>).</li>
+            </ul>
+            <p><strong>Pasos de instalación:</strong></p>
+            <ol>
+                  <li>Instala el módulo desde la lista de aplicaciones de Odoo o subiendo el código fuente.</li>
+                  <li>Configura la URL de Ollama en <code>Ajustes Técnicos > Parámetros > ai.ollama_url</code> (por
+                        defecto: <code>http://localhost:11434</code>).</li>
+                  <li>Accede al menú <code>Fabricación > Asistente IA</code> y ¡empieza a consultar!</li>
+            </ol>
+
+            <!-- SOPORTE Y LICENCIA -->
+            <h2>📞 Soporte y Licencia</h2>
+            <p>Este es un módulo de código abierto publicado bajo la licencia <strong>LGPL-3</strong>.</p>
+            <ul>
+                  <li><strong>Soporte</strong>: Para reportar errores o solicitar nuevas funcionalidades, por favor
+                        utiliza la sección de "Issues" en el repositorio oficial del módulo o contacta al autor.</li>
+                  <li><strong>Autor</strong>: Pedro Mencías | <a href="https://pedromencias.netlify.app/"
+                              target="_blank">Portfolio</a></li>
+                  <!-- Si tienes un repositorio público, añade el enlace aquí -->
+                  <li><strong>Código Fuente</strong>: <a
+                              href="https://github.com/Charran78/ai_production_assistant_Odoo"
+                              target="_blank">GitHub</a></li>
+            </ul>
+
+            <!-- PIE DE PÁGINA -->
+            <div class="footer">
+                  <p>© 2026 - Asistente de Producción IA (Ollama). Un módulo para Odoo hecho con ❤️ y mucha
+                        automatización.</p>
+                  <p>Odoo es una marca registrada de Odoo S.A. Este módulo es un desarrollo comunitario independiente.
+                  </p>
+            </div>
+      </div>
+</body>
+
+</html>

@@ -102,47 +102,73 @@ class AIAssistantSession(models.Model):
                     
                 field = Model._fields[field_name]
                 
-                # Resolución de nombres a IDs para campos Many2one
-                if field.type == 'many2one' and isinstance(value, str):
-                    # 1. Intentar extraer ID de formato [ID] Nombre (inyectado por ContextService)
-                    match = re.search(r'\[(\d+)\]', value)
-                    if match:
-                        value = int(match.group(1))
-                    else:
-                        # 2. Búsqueda por nombre técnico (exacto o parcial)
-                        RelatedModel = self.env[field.comodel_name]
-                        res = RelatedModel.name_search(name=value, operator='=', limit=1)
-                        if not res:
-                            res = RelatedModel.name_search(name=value, operator='ilike', limit=1)
-                        
-                        if res:
-                            _logger.info("Resolviendo Many2one %s: '%s' -> ID %s", field_name, value, res[0][0])
-                            value = res[0][0]
+                # Resolución avanzada para campos Many2one
+                if field.type == 'many2one':
+                    # A. Gestionar listas (ej: [3]) enviadas por modelos pequeños como Phi3
+                    if isinstance(value, list) and len(value) > 0:
+                        value = value[0]
+                    
+                    # B. Resolución de strings técnicos o nombres
+                    if isinstance(value, str):
+                        # 1. Intentar extraer ID de formato [ID] Nombre
+                        match = re.search(r'\[(\d+)\]', value)
+                        if match:
+                            value = int(match.group(1))
+                        else:
+                            # 2. Búsqueda por nombre técnico
+                            RelatedModel = self.env[field.comodel_name]
+                            res = RelatedModel.name_search(name=value, operator='=', limit=1)
+                            if not res:
+                                res = RelatedModel.name_search(name=value, operator='ilike', limit=1)
+                            
+                            if res:
+                                _logger.info("Resolviendo Many2one %s: '%s' -> ID %s", field_name, value, res[0][0])
+                                value = res[0][0]
                 
-                # Si sigue siendo string para un Many2one, abortar para evitar error SQL
-                if field.type == 'many2one' and isinstance(value, str):
-                     return {'error': f"No se encontró el registro '{value}' para el campo '{field.string}'"}
+                    # Protección final: si no es entero, abortar para evitar error SQL
+                    if not isinstance(value, int):
+                         return {'error': f"No se pudo determinar un ID válido para el campo '{field.string}' (valor: {value})"}
 
                 valid_vals[field_name] = value
 
             # Lógica específica para mrp.production (Auto-completado de campos obligatorios en creación)
             if model_name == 'mrp.production' and function == 'create':
                 if 'product_id' in valid_vals:
-                    product = self.env['product.product'].browse(valid_vals['product_id'])
-                    if product.exists():
-                        if 'product_uom_id' not in valid_vals:
-                            valid_vals['product_uom_id'] = product.uom_id.id
-                        if 'bom_id' not in valid_vals:
-                            # Intentar encontrar la lista de materiales por defecto
-                            bom = self.env['mrp.bom']._bom_find(product=product)
-                            if bom and product in bom:
-                                valid_vals['bom_id'] = bom[product].id
+                    # VALIDACIÓN CRÍTICA: Asegurar que product_id es un entero válido
+                    try:
+                        product_id = int(valid_vals['product_id'])
+                    except (ValueError, TypeError):
+                        return {'error': f"El ID del producto '{valid_vals['product_id']}' no es válido."}
+                    
+                    product = self.env['product.product'].browse(product_id)
+                    if not product.exists():
+                        return {'error': f"El producto con ID {product_id} no existe."}
+                        
+                    if 'product_uom_id' not in valid_vals:
+                        valid_vals['product_uom_id'] = product.uom_id.id
+                    if 'bom_id' not in valid_vals:
+                        # Odoo 19: _bom_find requiere 'products' (recordset)
+                        try:
+                            _logger.info("IA DEBUG: Llamando a _bom_find con products=%s", product)
+                            bom_data = self.env['mrp.bom']._bom_find(product, None, product.company_id.id)
+                            if bom_data and product in bom_data:
+                                valid_vals['bom_id'] = bom_data[product].id
+                                _logger.info("IA: BoM auto-detectada: %s", valid_vals['bom_id'])
+                        except Exception as bom_e:
+                            _logger.error("Error en _bom_find: %s", str(bom_e))
+                            # Fallback desesperado: buscar cualquier BoM del producto
+                            bom = self.env['mrp.bom'].search([('product_id', '=', product.id)], limit=1)
+                            if not bom:
+                                 bom = self.env['mrp.bom'].search([('product_tmpl_id', '=', product.product_tmpl_id.id)], limit=1)
+                            if bom:
+                                 valid_vals['bom_id'] = bom.id
                         # Asegurar tipo numérico para cantidad
                         if 'product_qty' in valid_vals:
                             try:
                                 valid_vals['product_qty'] = float(valid_vals['product_qty'])
-                            except:
-                                pass
+                            except (ValueError, TypeError):
+                                valid_vals['product_qty'] = 1.0
+                                _logger.warning("Cantidad inválida para producción, usando 1.0")
 
             if function == 'create':
                 if not valid_vals:
@@ -171,6 +197,95 @@ class AIAssistantSession(models.Model):
             _logger.error("Error ejecutando acción IA: %s", str(e))
             return {'error': str(e)}
 
+    # PROXY PARA ACCIONES DESDE EL CHAT
+    def action_approve_pending_action(self):
+        """ Método puente para llamar a la aprobación desde la vista de chat """
+        action_id = self.env.context.get('pending_action_id')
+        if action_id:
+            action = self.env['ai.pending.action'].browse(action_id)
+            return action.action_approve_and_execute()
+        return False
+
+    def action_reject_pending_action(self):
+        """ Método puente para llamar al rechazo desde la vista de chat """
+        action_id = self.env.context.get('pending_action_id')
+        if action_id:
+            action = self.env['ai.pending.action'].browse(action_id)
+            return action.action_reject()
+        return False
+
+    def _get_stock_data(self):
+        """Obtiene datos reales de stock para incluir en el contexto del asistente"""
+        # Consultar productos con stock disponible
+        StockQuant = self.env['stock.quant']
+        ProductProduct = self.env['product.product']
+        
+        # Obtener todos los productos activos
+        products = ProductProduct.search([('active', '=', True)])
+        
+        stock_data = []
+        for product in products:
+            # Obtener stock disponible en ubicaciones internas
+            quants = StockQuant.search([
+                ('product_id', '=', product.id),
+                ('location_id.usage', '=', 'internal'),  # Solo ubicaciones internas
+                ('quantity', '>', 0)
+            ])
+            
+            total_qty = sum(quants.mapped('quantity'))
+            reserved_qty = sum(quants.mapped('reserved_quantity'))
+            available_qty = total_qty - reserved_qty
+            
+            stock_data.append({
+                'id': product.id,
+                'name': product.display_name,
+                'default_code': product.default_code or '',
+                'total_qty': total_qty,
+                'reserved_qty': reserved_qty,
+                'available_qty': available_qty,
+                'uom': product.uom_id.name,
+                'reordering_min_qty': product.reordering_min_qty or 0,
+                'reordering_max_qty': product.reordering_max_qty or 0,
+            })
+        
+        return stock_data
+    
+    def _get_context_with_stock(self, original_context):
+        """Enriquece el contexto con datos de stock"""
+        stock_data = self._get_stock_data()
+        
+        # Formatear para el prompt del asistente
+        stock_text = "📦 DATOS DE STOCK ACTUAL\n"
+        stock_text += "Productos con stock disponible:\n"
+        stock_text += "----------------------------------------\n"
+        
+        for item in stock_data:
+            if item['available_qty'] > 0:
+                stock_text += f"• [{item['id']}] {item['name']} ({item['default_code']})\n"
+                stock_text += f"  Disponible: {item['available_qty']} {item['uom']}\n"
+                stock_text += f"  Total: {item['total_qty']} | Reservado: {item['reserved_qty']}\n"
+                
+                # Mostrar reglas de reaprovisionamiento si existen
+                if item['reordering_min_qty'] > 0:
+                    stock_text += f"  Mínimo: {item['reordering_min_qty']} | Máximo: {item['reordering_max_qty']}\n"
+                
+                stock_text += "\n"
+        
+        # Productos sin stock
+        out_of_stock = [item for item in stock_data if item['available_qty'] <= 0]
+        if out_of_stock:
+            stock_text += "\n⚠️ PRODUCTOS SIN STOCK:\n"
+            stock_text += "----------------------------------------\n"
+            for item in out_of_stock:
+                stock_text += f"• [{item['id']}] {item['name']} ({item['default_code']})\n"
+                if item['reordering_min_qty'] > 0:
+                    stock_text += f"  ¡STOCK BAJO! Mínimo requerido: {item['reordering_min_qty']}\n"
+                stock_text += "\n"
+        
+        # Agregar al contexto
+        enriched_context = original_context + "\n\n" + stock_text
+        return enriched_context
+
 
 class AIAssistantMessage(models.Model):
     _name = 'ai.assistant.message'
@@ -196,6 +311,9 @@ class AIAssistantMessage(models.Model):
     )
     model_ollama_id = fields.Many2one('ai.ollama.model', string='Modelo específico')
     
+    # RELACIÓN: Acciones pendientes para este mensaje
+    pending_action_ids = fields.One2many('ai.pending.action', 'message_id', string='Acciones Sugeridas')
+    
     # NUEVO: Guardar acciones sugeridas para ejecución posterior
     extracted_actions = fields.Text(string="Acciones Extraídas (JSON)")
 
@@ -209,23 +327,32 @@ class AIAssistantMessage(models.Model):
         """ Procesa la cola de mensajes pendientes usando servicios refactorizados. """
         pending_msgs = self.search([('state', '=', 'pending')], limit=5, order='create_date asc')
         
-        # Inicializar servicios
-        ctx_service = ContextService(self.env)
-        orchestrator = PromptOrchestrator(self.env)
-        ollama = OllamaService(self.env)
-        parser = ResponseParser()
+        try:
+            # Inicializar servicios con manejo de error
+            ctx_service = ContextService(self.env)
+            orchestrator = PromptOrchestrator(self.env)
+            ollama = OllamaService(self.env)
+            parser = ResponseParser()
+        except ImportError as e:
+            _logger.error("Error crítico: No se pueden importar los servicios. %s", e)
+            pending_msgs.write({'state': 'error', 'content': 'Error interno del módulo (servicios no disponibles)'})
+            return
+        except Exception as e:
+            _logger.error("Error inesperado inicializando servicios: %s", e)
+            pending_msgs.write({'state': 'error', 'content': f'Error inicializando servicios: {str(e)}'})
+            return
 
         for msg in pending_msgs:
             try:
                 session = msg.session_id
                 model_name = session.model_id.model if session.model_id else False
 
-                # 1. Obtener contexto (ahora inyectando el context_ref si existe)
-                context_str = ctx_service.get_context(session)
+                # 1. Obtener contexto
+                context_str = ctx_service.get_context(session, msg.raw_prompt_stored)
                 if msg.context_ref:
                      context_str += f"\n\nCONTEXTO ESPECÍFICO ADICIONAL:\n{msg.context_ref.display_name}"
 
-                # 2. Orquestar prompt (inyectando output_style)
+                # 2. Orquestar prompt
                 system_prompt = orchestrator.get_system_prompt(
                     context_str, 
                     model_name=model_name,
@@ -233,14 +360,19 @@ class AIAssistantMessage(models.Model):
                 )
                 final_prompt = orchestrator.build_final_prompt(system_prompt, msg.raw_prompt_stored)
 
-                # 3. Llamar a Ollama (usando modelo específico si existe)
-                target_model = msg.model_ollama_id.name or session.model_ollama or "llama3.2"
+                # 3. Llamar a Ollama
+                if msg.model_ollama_id:
+                    target_model = msg.model_ollama_id.name
+                    # Incrementar contador de uso
+                    msg.model_ollama_id.increment_usage()
+                else:
+                    target_model = session.model_ollama or "llama3.2"
                 raw_response = ollama.generate(
                     model=target_model,
                     prompt=final_prompt
                 )
                 
-                # 4. Parsear respuesta (Acciones y HTML)
+                # 4. Parsear respuesta
                 clean_text, actions = parser.parse_actions(raw_response)
                 formatted_response = parser.format_html(clean_text)
                 
@@ -250,7 +382,7 @@ class AIAssistantMessage(models.Model):
                     'extracted_actions': json.dumps(actions) if actions else False
                 })
 
-                # NUEVO: Crear acciones pendientes para aprobación humana
+                # Crear acciones pendientes para aprobación humana
                 if actions:
                     for act_data in actions:
                         self.env['ai.pending.action'].create({
@@ -261,8 +393,7 @@ class AIAssistantMessage(models.Model):
                         })
 
             except Exception as e:
-                _logger.error("Error en cron IA: %s", str(e))
+                _logger.error("Error en loop cron IA: %s", str(e))
                 msg.write({'state': 'error', 'content': f"Error crítico: {str(e)}"})
             
-            # Commit por cada mensaje procesado
-            self.env.cr.commit()
+            # ELIMINADO: self.env.cr.commit() para mayor estabilidad transaccional

@@ -30,26 +30,31 @@ class OllamaService:
         
         for attempt in range(retries):
             try:
-                _logger.debug("Enviando a Ollama (Intento %s/%s): %s", attempt + 1, retries, prompt[:100])
-                res = requests.post(url, json=payload, timeout=120)
+                _logger.debug("Enviando a Ollama (Intento %s/%s | Modelo: %s): %s", 
+                              attempt + 1, retries, model, prompt[:100])
+                # Timeout de 600s para modelos pesados (4B+)
+                res = requests.post(url, json=payload, timeout=600)
                 
                 if res.status_code == 200:
+                    _logger.debug("Respuesta de Ollama recibida exitosamente")
                     return res.json().get('response', '')
                 else:
-                    _logger.error("Error en Ollama API (%s): %s", res.status_code, res.text)
+                    _logger.error("Error en Ollama API. Status: %s, Respuesta: %s", 
+                                 res.status_code, res.text[:500])
                     if attempt < retries - 1:
-                        time.sleep(1) # Espera breve antes de reintentar
+                        time.sleep(1)
                         continue
-                    return f"Error en conexión con Ollama (Status: {res.status_code})"
+                    return f"Error en conexión con Ollama (Status: {res.status_code}). Detalles: {res.text[:200]}"
                     
             except requests.exceptions.Timeout:
-                _logger.warning("Timeout excedido en Ollama (Intento %s/%s)", attempt + 1, retries)
+                _logger.warning("Timeout excedido (600s) en Ollama para modelo %s (Intento %s/%s)", 
+                                model, attempt + 1, retries)
                 if attempt < retries - 1:
                     time.sleep(1)
                     continue
-                return "Error: Tiempo de espera agotado con la IA."
+                return "Error: Tiempo de espera agotado con la IA (modelo cargado o sin memoria)."
             except Exception as e:
-                _logger.error("Error técnico llamando a Ollama: %s", str(e))
+                _logger.error("Error técnico llamando a Ollama: %s", str(e), exc_info=True)
                 if attempt < retries - 1:
                     time.sleep(1)
                     continue

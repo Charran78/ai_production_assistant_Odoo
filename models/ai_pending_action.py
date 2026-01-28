@@ -26,6 +26,20 @@ class AIPendingAction(models.Model):
     ], default='pending', string='Estado')
     
     execution_result = fields.Text(string='Resultado ejecución')
+    display_name_suggested = fields.Char(string='Descripción Acción', compute='_compute_display_name_suggested')
+
+    @api.depends('model_name', 'function', 'vals_json')
+    def _compute_display_name_suggested(self):
+        import json
+        for rec in self:
+            try:
+                vals = json.loads(rec.vals_json)
+                action = _("Crear") if rec.function == 'create' else _("Actualizar")
+                # Intentar sacar nombre del producto o referencia
+                name = vals.get('name') or vals.get('display_name') or vals.get('product_id') or ""
+                rec.display_name_suggested = f"{action} {rec.model_name}: {name}"
+            except:
+                rec.display_name_suggested = f"{rec.function} {rec.model_name}"
 
     def action_approve_and_execute(self):
         """ Aprueba y ejecuta la acción usando el método perform_ai_action de la sesión. """

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- List view for ai.pending.action -->
+    <record id="view_ai_pending_action_list" model="ir.ui.view">
+        <field name="name">ai.pending.action.list</field>
+        <field name="model">ai.pending.action</field>
+        <field name="arch" type="xml">
+            <list string="Acciones Pendientes de IA">
+                <field name="display_name_suggested"/>
+                <field name="model_name"/>
+                <field name="function"/>
+                <field name="state"/>
+                <field name="create_date"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form view for ai.pending.action -->
+    <record id="view_ai_pending_action_form" model="ir.ui.view">
+        <field name="name">ai.pending.action.form</field>
+        <field name="model">ai.pending.action</field>
+        <field name="arch" type="xml">
+            <form string="Acción Pendiente de IA">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_approve_and_execute" 
+                                type="object" 
+                                class="oe_stat_button"
+                                icon="fa-check"
+                                string="Aprobar y Ejecutar"/>
+                        <button name="action_reject" 
+                                type="object" 
+                                class="oe_stat_button"
+                                icon="fa-times"
+                                string="Rechazar"/>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="display_name_suggested"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Información General">
+                            <field name="model_name"/>
+                            <field name="function"/>
+                            <field name="state"/>
+                            <field name="create_date"/>
+                        </group>
+                        <group string="Resultado">
+                            <field name="execution_result" 
+                                   readonly="1" 
+                                   nolabel="1"
+                                   placeholder="Resultado de la ejecución aparecerá aquí"/>
+                        </group>
+                    </group>
+                    <group string="Datos Técnicos">
+                        <field name="vals_json" 
+                               widget="json" 
+                               nolabel="1"
+                               readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action for ai.pending.action -->
+    <record id="action_ai_pending_action" model="ir.actions.act_window">
+        <field name="name">Acciones Pendientes de IA</field>
+        <field name="res_model">ai.pending.action</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('state', '=', 'pending')]</field>
+        <field name="context">{'search_default_state_pending': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No hay acciones pendientes de aprobación.
+            </p>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Modelo principal -->
+    <record id="ai_ollama_model_gemma3:4b" model="ai.ollama.model">
+        <field name="name">gemma3:4b</field>
+        <field name="display_name">Gemma3:4B</field>
+        <field name="max_tokens">2048</field>
+        <field name="temperature">0.3</field>
+        <field name="is_production_optimized">True</field>
+        <field name="active">True</field>
+        <field name="sequence">10</field>
+    </record>
+    
+    <!-- Modelo alternativo -->
+    <record id="ai_ollama_model_llama3.2:3b" model="ai.ollama.model">
+        <field name="name">llama3.2:3b</field>
+        <field name="display_name">Llama 3.2:3B</field>
+        <field name="max_tokens">2048</field>
+        <field name="temperature">0.3</field>
+        <field name="is_general_purpose">True</field>
+        <field name="active">True</field>
+        <field name="sequence">10</field>
+    </record>
+</odoo>
