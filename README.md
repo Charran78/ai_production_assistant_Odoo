@@ -227,8 +227,6 @@ Dimensiones: 384
 
 **Ejemplos prácticos:**
 
-| Tipo de Consulta | Ejemplo | Respuesta Esperada |
-|------------------|---------|--------------------|
 | **Inventario**   | "Muéstrame el stock actual de harina" | Tabla con stock por almacén |
 | **Órdenes**      | "¿Qué MOs están en estado 'En Progreso'?" | Lista + tiempos estimados |
 | **Análisis**     | "Analiza el rendimiento de esta semana" | Informe con KPIs y gráficos |
