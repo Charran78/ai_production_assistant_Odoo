@@ -6,8 +6,7 @@
         <field name="arch" type="xml">
             <form string="Consulta a la IA">
                 <group>
-                    <field name="output_style" widget="radio" options="{'horizontal': true}"/>
-                    <field name="prompt" placeholder="Ej: ¿Qué órdenes están retrasadas?"/>
+                    <field name="prompt" placeholder="Ej: ¿Qué órdenes están retrasadas? Necesito un informe de producción..." nolabel="1"/>
                 </group>
                 <footer>
                     <button name="action_confirm" string="Enviar" type="object" class="btn-primary"/>

@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_installation_wizard_form" model="ir.ui.view">
+        <field name="name">ai.installation.wizard.form</field>
+        <field name="model">ai.installation.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Asistente de Instalación - AI Production Assistant">
+                <header>
+                    <progressbar value="progress" max="100" invisible="current_step == 'completion'"/>
+                    <h2>🚀 Configuración Automática del Asistente de IA</h2>
+                    <p>Este asistente te guiará paso a paso en la configuración de todo el sistema</p>
+                </header>
+                
+                <sheet>
+                    <!-- Paso 1: Detección de Ollama -->
+                    <group string="Paso 1: Detección de Dependencias" invisible="current_step != 'detection'">
+                        <group>
+                            <h2>Estado de Ollama</h2>
+                            <div>
+                                <field name="ollama_status" widget="statusbar" 
+                                      statusbar_visible="not_installed,installed,running" 
+                                      clickable="true"/>
+                            </div>
+                        </group>
+                        
+                        <group>
+                            <h2>Detalles de Instalación</h2>
+                            <div>
+                                <field name="ollama_installed" readonly="1" nolabel="1"/>
+                                <field name="ollama_version" readonly="1" nolabel="1"/>
+                            </div>
+                        </group>
+                        
+                        <group>
+                            <h2>Acciones</h2>
+                            <div>
+                                <button name="action_install_ollama" string="📥 Instalar Ollama Automáticamente" 
+                                      type="object" class="btn-primary" 
+                                      invisible="ollama_status != 'not_installed'"/>
+                                <button name="action_start_ollama" string="🚀 Iniciar Servicio Ollama" 
+                                      type="object" class="btn-primary" 
+                                      invisible="ollama_status != 'installed'"/>
+                                <button name="action_next_step" string="Siguiente Paso →" 
+                                      type="object" class="btn-primary" 
+                                      invisible="ollama_status != 'running'"/>
+                            </div>
+                        </group>
+                    </group>
+                    
+                    <!-- Paso 2: Selección de Modelo -->
+                    <group string="Paso 2: Selección del Modelo de IA" invisible="current_step != 'model_selection'">
+                        <group>
+                            <h2>Modelos Recomendados</h2>
+                            <div>
+                                <field name="selected_model" widget="radio" 
+                                      options="{'horizontal': true}" nolabel="1"/>
+                            </div>
+                        </group>
+                        
+                        <group>
+                            <h2>Acciones</h2>
+                            <div>
+                                <button name="action_download_model" string="📥 Descargar Modelo Seleccionado" 
+                                      type="object" class="btn-primary"/>
+                                <button name="action_next_step" string="Siguiente Paso →" 
+                                      type="object" class="btn-primary"/>
+                            </div>
+                        </group>
+                    </group>
+                    
+                    <!-- Paso 3: Configuración de Base de Datos -->
+                    <group string="Paso 3: Configuración de Base de Datos" invisible="current_step != 'configuration'">
+                        <group>
+                            <h2>Estado de la Base de Datos</h2>
+                            <div>
+                                <field name="vector_db_status" widget="statusbar" 
+                                      statusbar_visible="not_configured,configured,ready" 
+                                      clickable="true"/>
+                            </div>
+                        </group>
+                        
+                        <group>
+                            <h2>Configuración</h2>
+                            <div>
+                                <field name="db_configured" readonly="1" nolabel="1"/>
+                            </div>
+                        </group>
+                        
+                        <group>
+                            <h2>Acciones</h2>
+                            <div>
+                                <button name="action_configure_database" string="🔧 Configurar Base de Datos" 
+                                      type="object" class="btn-primary" 
+                                      invisible="vector_db_status != 'not_configured'"/>
+                                <button name="action_next_step" string="Siguiente Paso →" 
+                                      type="object" class="btn-primary" 
+                                      invisible="vector_db_status != 'configured'"/>
+                            </div>
+                        </group>
+                    </group>
+                    
+                    <!-- Paso 4: Configuración Avanzada -->
+                    <group string="Paso 4: Configuración Avanzada (Proactividad)" invisible="current_step != 'advanced_config'">
+                        <group>
+                            <h2>Alertas y Monitoreo</h2>
+                            <div>
+                                <field name="enable_watchdogs" widget="boolean_toggle"/>
+                                <p class="text-muted">Permite al asistente monitorear procesos en segundo plano y alertar sobre anomalías.</p>
+                                
+                                <field name="enable_dashboards" widget="boolean_toggle"/>
+                                <p class="text-muted">Habilita paneles ejecutivos con métricas en tiempo real.</p>
+                            </div>
+                        </group>
+                        
+                        <group>
+                            <h2>Acciones Automáticas</h2>
+                            <div>
+                                <field name="enable_actions" widget="boolean_toggle"/>
+                                <p class="text-muted">Permite al asistente ejecutar acciones de corrección automáticamente (requiere aprobación por defecto).</p>
+                                
+                                <field name="show_pending_actions" widget="boolean_toggle"/>
+                                <p class="text-muted">Muestra un widget con acciones pendientes de aprobación en el dashboard principal.</p>
+                            </div>
+                        </group>
+                        
+                        <group>
+                            <h2>Acciones</h2>
+                            <div>
+                                <button name="action_save_advanced_config" string="💾 Guardar Preferencias" 
+                                      type="object" class="btn-secondary"
+                                      invisible="advanced_config_saved"/>
+                                <button name="action_complete_installation" string="🎉 Finalizar Instalación" 
+                                      type="object" class="btn-primary"/>
+                            </div>
+                        </group>
+                    </group>
+                    
+                    <!-- Paso 5: Completado -->
+                    <group string="🎉 ¡Instalación Completada!" invisible="current_step != 'completion'">
+                        <div class="alert alert-success" role="alert">
+                            <h4 class="alert-heading">✅ ¡Todo listo!</h4>
+                            <p>El Asistente de IA para Producción ha sido configurado correctamente.</p>
+                            <hr/>
+                            <p class="mb-0">Ahora puedes comenzar a usar todas las funcionalidades del sistema.</p>
+                        </div>
+                        
+                        <group>
+                            <h2>Resumen de la Instalación</h2>
+                            <div>
+                                <ul>
+                                    <li>✅ Ollama instalado y ejecutándose</li>
+                                    <li>✅ Modelo de IA descargado y configurado</li>
+                                    <li>✅ Base de datos vectorial preparada</li>
+                                    <li>✅ Sistema de alertas configurado</li>
+                                    <li>✅ Expertos especializados activados</li>
+                                </ul>
+                            </div>
+                        </group>
+                        
+                        <group>
+                            <h2>Próximos Pasos</h2>
+                            <div>
+                                <p>Puedes comenzar a:</p>
+                                <ol>
+                                    <li>💬 Chatear con el asistente en el módulo de Producción</li>
+                                    <li>🚨 Configurar alertas automáticas</li>
+                                    <li>🏭 Analizar el estado de las órdenes de producción</li>
+                                    <li>📊 Revisar el dashboard ejecutivo</li>
+                                </ol>
+                            </div>
+                        </group>
+                    </group>
+                    
+                    <!-- Log de Instalación (siempre visible) -->
+                    <group string="Log de Instalación" colspan="2">
+                        <field name="installation_log" widget="textarea" nolabel="1" 
+                              style="height: 200px; font-family: monospace; font-size: 12px;" 
+                              readonly="1"/>
+                    </group>
+                </sheet>
+                
+                <footer>
+                    <button string="← Anterior" type="object" name="action_previous_step" 
+                          invisible="current_step == 'detection' or current_step == 'completion'" class="btn-secondary"/>
+                    <button string="Cancelar" special="cancel" class="btn-secondary" invisible="current_step == 'completion'"/>
+                    <button string="Comenzar a Usar el Sistema" special="cancel" class="btn-primary" invisible="current_step != 'completion'"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Acción del wizard -->
+    <record id="action_installation_wizard" model="ir.actions.act_window">
+        <field name="name">Asistente de Instalación</field>
+        <field name="res_model">ai.installation.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="view_id" ref="view_installation_wizard_form"/>
+    </record>
+    
+
+    
+    <!-- Menú para acceder al wizard -->
+    <menuitem id="menu_installation_wizard" 
+              name="Configuración Asistente" 
+              parent="ai_production_assistant.menu_ai_assistant_root" 
+              action="action_installation_wizard" 
+              sequence="10"/>
+</odoo>

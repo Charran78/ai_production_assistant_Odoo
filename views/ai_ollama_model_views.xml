@@ -51,7 +51,7 @@
         <field name="model_id" ref="model_ai_ollama_model"/>
         <field name="state">code</field>
         <field name="code">
-            action = model.action_sync_models()
+            action = model.action_sync_all_models()
         </field>
     </record>
 

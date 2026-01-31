@@ -2,18 +2,16 @@
 from . import models
 from . import controllers
 from . import services
+from . import wizards
 
-def _create_default_data(cr, registry):
+def _create_default_data(env):
     """
     Hook de post-inicialización llamado automáticamente por Odoo.
     Se ejecuta después de instalar o actualizar el módulo.
     """
-    from odoo import api, SUPERUSER_ID
+    import logging
     
-    # Crear entorno con usuario SUPERUSER_ID
-    env = api.Environment(cr, SUPERUSER_ID, {})
-    
-    _logger = env['ir.logging']
+    _logger = logging.getLogger(__name__)
     _logger.info("AI Production Assistant: Inicializando datos por defecto...")
     
     try:
@@ -57,7 +55,6 @@ def _create_default_data(cr, registry):
                 'code': 'model._cron_process_ai_queue()',
                 'interval_number': 1,
                 'interval_type': 'minutes',
-                'numbercall': -1,
                 'doall': False,
                 'active': True,
             })

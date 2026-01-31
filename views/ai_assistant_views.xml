@@ -7,7 +7,7 @@
         <field name="arch" type="xml">
             <list string="Sesiones del Asistente" decoration-muted="not active">
                 <field name="name"/>
-                <field name="model_id"/>
+                <field name="model_ollama"/>
                 <field name="create_date"/>
                 <field name="user_id" widget="many2one_avatar_user"/>
                 <field name="active" widget="boolean_toggle"/>
@@ -22,7 +22,7 @@
         <field name="arch" type="xml">
             <form string="Asistente de Producción">
                 <header>
-                    <button name="action_ask_ai_async" string="Enviar Pregunta" type="object" class="btn-primary"/>
+                    <button name="action_process_pending" string="Procesar Pendientes" type="object" class="btn-primary"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
@@ -35,8 +35,7 @@
                     </div>
                     <group>
                         <group>
-                            <field name="model_id" options="{'no_create': True, 'no_open': True}"/>
-                            <field name="model_ollama" options="{'no_create': True}"/>
+                            <field name="model_ollama" placeholder="gemma3:4b"/>
                         </group>
                         <group>
                             <field name="user_id" widget="many2one_avatar_user"/>
@@ -67,26 +66,6 @@
 
                                                     <div class="o_formatted_content mt-2 mb-3">
                                                         <field name="content" widget="html"/>
-                                                    </div>
-
-                                                    <!-- LISTA DE ACCIONES PENDIENTES (MODO ROBUSTO) -->
-                                                    <div t-if="record.role.raw_value == 'assistant' and record.pending_action_ids" class="mt-3">
-                                                        <field name="pending_action_ids" readonly="0">
-                                                            <list create="false" delete="false" edit="false" no_open="true">
-                                                                <field name="display_name_suggested" string="Acción"/>
-                                                                <field name="state" widget="badge" 
-                                                                       decoration-warning="state == 'pending'"
-                                                                       decoration-success="state == 'executed'"
-                                                                       decoration-danger="state == 'error'"
-                                                                       decoration-info="state == 'rejected'"/>
-                                                                <button name="action_approve_and_execute" type="object" 
-                                                                        string="Aprobar" class="btn-success"
-                                                                        invisible="state != 'pending'"/>
-                                                                <button name="action_reject" type="object" 
-                                                                        string="Rechazar" class="btn-outline-danger"
-                                                                        invisible="state != 'pending'"/>
-                                                            </list>
-                                                        </field>
                                                     </div>
                                                 </div>
                                             </div>

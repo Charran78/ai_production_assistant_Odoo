@@ -1,20 +1,100 @@
+/* Base Styles */
 .o_ai_chat_container {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     transition: background-color 0.3s ease;
+
+    /* Default (Light Mode) Variables */
+    --o-chat-bg: #f8f9fa;
+    --o-chat-text: #212529;
+    --o-chat-header-bg: #ffffff;
+    --o-chat-header-text: #212529;
+    --o-chat-bubble-bg: #ffffff;
+    --o-chat-bubble-text: #212529;
+    --o-chat-bubble-border: #dee2e6;
+    --o-chat-input-bg: #f8f9fa;
+    /* Gris muy claro */
+    --o-chat-input-text: #212529;
+    --o-chat-input-placeholder: #6c757d;
+    --o-chat-border: #dee2e6;
+    --o-chat-settings-bg: #f8f9fa;
+
+    background-color: var(--o-chat-bg);
+    color: var(--o-chat-text);
 }
 
-/* Dark Mode Styles */
+/* Dark Mode Override */
 .o_ai_chat_dark {
-    background-color: #1e1e1e !important;
-    color: #e0e0e0;
+    --o-chat-bg: #1e1e1e;
+    --o-chat-text: #e0e0e0;
+    --o-chat-header-bg: #252526;
+    --o-chat-header-text: #e0e0e0;
+    --o-chat-bubble-bg: #2d2d2d;
+    --o-chat-bubble-text: #d4d4d4;
+    --o-chat-bubble-border: #3e3e42;
+    --o-chat-input-bg: #2d2d2d;
+    --o-chat-input-text: #e0e0e0;
+    --o-chat-input-placeholder: #a0a0a0;
+    --o-chat-border: #3e3e42;
+    --o-chat-settings-bg: #252526;
+
+    /* Inputs y Selects */
+    .form-control,
+    .form-select {
+        background-color: var(--o-chat-input-bg) !important;
+        color: var(--o-chat-input-text) !important;
+        border-color: var(--o-chat-border) !important;
+
+        &:focus {
+            background-color: #383838 !important;
+            color: #fff !important;
+            box-shadow: none;
+            border-color: #0d6efd;
+        }
+
+        /* Asegurar que las opciones del select sean legibles */
+        option {
+            background-color: #2d2d2d;
+            color: #e0e0e0;
+        }
+    }
+
+    /* Badges */
+    .badge.bg-info {
+        background-color: rgba(13, 202, 240, 0.2) !important;
+        /* Más oscuro para contraste */
+        color: #0dcaf0 !important;
+        /* Azul cyan brillante */
+        border-color: rgba(13, 202, 240, 0.3) !important;
+    }
+
+    .btn-outline-secondary {
+        color: #a0a0a0;
+        border-color: #3e3e42;
+
+        &:hover {
+            background-color: #3e3e42;
+            color: #fff;
+        }
+    }
 }
 
-.bg-dark-bubble {
-    background-color: #2b2b2b !important;
+/* Applying Variables */
+.o_ai_chat_header,
+.o_ai_chat_footer {
+    background-color: var(--o-chat-header-bg) !important;
+    border-color: var(--o-chat-border) !important;
+    color: var(--o-chat-header-text);
 }
 
-.bg-secondary {
-    background-color: #383838 !important;
+.o_ai_chat_bubble_assistant {
+    background-color: var(--o-chat-bubble-bg) !important;
+    color: var(--o-chat-bubble-text) !important;
+    border: 1px solid var(--o-chat-bubble-border) !important;
+}
+
+/* Special Inputs for Light Mode override */
+.form-control.bg-light {
+    background-color: #f8f9fa !important;
 }
 
 /* Typing Animation */
@@ -26,6 +106,10 @@
     background-color: #adb5bd;
     border-radius: 50%;
     animation: wave 1.3s linear infinite;
+}
+
+.o_ai_chat_dark .typing-dots .dot {
+    background-color: #6c757d;
 }
 
 .typing-dots .dot:nth-child(2) {
@@ -49,19 +133,31 @@
     }
 }
 
-/* Bubbles adjustments */
-.rounded-tr-0 {
-    border-top-right-radius: 0 !important;
+/* Scrollbar */
+.o_ai_chat_messages::-webkit-scrollbar {
+    width: 6px;
 }
 
-.rounded-tl-0 {
-    border-top-left-radius: 0 !important;
+.o_ai_chat_messages::-webkit-scrollbar-track {
+    background: transparent;
 }
 
-/* Code blocks style */
+.o_ai_chat_messages::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+.o_ai_chat_dark .o_ai_chat_messages::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Code Blocks */
 pre {
-    background: #2d2d2d;
-    color: #ccc;
-    padding: 10px;
-    border-radius: 5px;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 0.8rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 0.5rem;
+    white-space: pre-wrap;
 }

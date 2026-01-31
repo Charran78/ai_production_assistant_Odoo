@@ -58,10 +58,5 @@
         </field>
     </record>
 
-    <!-- Menu item (opcional) -->
-    <menuitem id="menu_ai_vector_config"
-              name="Configuración Qdrant"
-              parent="menu_ai_assistant_root"
-              action="action_ai_vector_config"
-              sequence="20"/>
+    
 </odoo>
