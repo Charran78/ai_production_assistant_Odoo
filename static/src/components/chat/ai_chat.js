@@ -3,6 +3,7 @@
 import { Component, useState, useRef, onMounted, onPatched, onWillStart, onWillUnmount } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { deserializeDateTime, formatDateTime } from "@web/core/l10n/dates";
 
 export class AiChat extends Component {
     static template = "ai_production_assistant.AiChat";
@@ -22,6 +23,7 @@ export class AiChat extends Component {
             showSettings: false,
             darkMode: false, // ¡Vuelve el Dark Mode!
             userHasSelectedModel: false, // Nuevo estado para saber si el usuario ha cambiado el modelo
+            currentAvatar: localStorage.getItem('ai_assistant_avatar') || 'avatar.png'
         });
 
         this.messagesEndRef = useRef("messagesEnd");
@@ -40,6 +42,9 @@ export class AiChat extends Component {
             this.scrollToBottom();
             // Polling para actualizar mensajes (cada 3s)
             this.pollingInterval = setInterval(() => this._refreshMessages(), 3000);
+            
+            // Escuchar cambios de avatar globales
+            window.addEventListener('ai-avatar-changed', this._onAvatarChanged.bind(this));
         });
 
         onPatched(() => this.scrollToBottom());
@@ -47,7 +52,20 @@ export class AiChat extends Component {
         // Limpiar intervalo al destruir
         onWillUnmount(() => {
             if (this.pollingInterval) clearInterval(this.pollingInterval);
+            window.removeEventListener('ai-avatar-changed', this._onAvatarChanged.bind(this));
         });
+    }
+    
+    _onAvatarChanged(ev) {
+        if (ev.detail && ev.detail.avatar) {
+            this.state.currentAvatar = ev.detail.avatar;
+        }
+    }
+
+    get avatarUrl() {
+        // Prioridad: Prop (si viene del padre) > Estado local (sincronizado) > Default
+        if (this.props.avatarUrl) return this.props.avatarUrl;
+        return `/ai_production_assistant/static/src/img/${this.state.currentAvatar}`;
     }
 
     async _refreshMessages() {
@@ -126,7 +144,7 @@ export class AiChat extends Component {
             const serverMessages = await this.orm.searchRead(
                 "ai.assistant.message",
                 [['session_id', '=', this.state.sessionId]],
-                ['id', 'role', 'content', 'pending_action', 'create_date'],
+                ['id', 'role', 'content', 'pending_action', 'create_date', 'expert_name'],
                 { order: 'create_date asc', limit: 100 }
             );
 
@@ -134,16 +152,22 @@ export class AiChat extends Component {
             const mappedMessages = serverMessages.map(m => {
                 let cleanText = this._stripHtml(m.content || "");
 
-                // Si el texto parece un JSON de herramienta "message", extraerlo
-                if (cleanText.trim().startsWith('{') && cleanText.includes('"tool"')) {
+                cleanText = cleanText.replace(/```(?:json)?[\s\S]*?```/g, '').trim();
+                let candidate = cleanText.trim();
+                if (candidate.includes('```')) {
+                    candidate = candidate.replace(/```(?:json)?/g, '').replace(/```/g, '').trim();
+                }
+                if (candidate.startsWith('{') && candidate.includes('"tool"')) {
                     try {
-                        const jsonContent = JSON.parse(cleanText);
-                        if (jsonContent.tool === 'message' && jsonContent.params && jsonContent.params.content) {
-                            cleanText = jsonContent.params.content;
+                        const jsonContent = JSON.parse(candidate);
+                        if (jsonContent.tool === 'message' && jsonContent.params) {
+                            if (jsonContent.params.content) cleanText = jsonContent.params.content;
+                            else if (jsonContent.params.text) cleanText = jsonContent.params.text;
+                        } else if (jsonContent.tool) {
+                            cleanText = `Acción preparada: ${jsonContent.tool}`;
                         }
                     } catch (e) {
-                        // Ignorar error de parseo, dejar texto original o intentar regex
-                        const match = cleanText.match(/"content"\s*:\s*"([^"]+)"/);
+                        const match = candidate.match(/"content"\s*:\s*"([^"]+)"/);
                         if (match) cleanText = match[1];
                     }
                 }
@@ -153,7 +177,8 @@ export class AiChat extends Component {
                     role: m.role,
                     text: cleanText,
                     pendingAction: m.pending_action ? this._safeParseJson(m.pending_action) : null,
-                    time: new Date(m.create_date).toLocaleTimeString('es-ES').slice(0, 5),
+                    time: formatDateTime(deserializeDateTime(m.create_date), { format: "HH:mm" }),
+                    expert: m.expert_name || "IA"
                 };
             });
 
@@ -166,10 +191,13 @@ export class AiChat extends Component {
 
             // SMART MERGE: 
             // 1. Mantener mensajes locales optimistas (IDs grandes)
-            const localOptimistic = this.state.messages.filter(m => typeof m.id === 'number' && m.id > 1000000000000);
+            // Usamos un umbral alto para distinguir IDs temporales de IDs de base de datos
+            const OPTIMISTIC_ID_THRESHOLD = 1000000000000;
+            const localOptimistic = this.state.messages.filter(m => typeof m.id === 'number' && m.id > OPTIMISTIC_ID_THRESHOLD);
 
-            // 2. Descartar optimistas si ya llegaron del servidor
+            // 2. Descartar optimistas si ya llegaron del servidor (evitar duplicados)
             const finalOptimistic = localOptimistic.filter(optMsg => {
+                // Comparamos por contenido y rol, ya que el ID será diferente
                 const existsInServer = mappedMessages.some(srvMsg =>
                     srvMsg.role === optMsg.role &&
                     srvMsg.text === optMsg.text
@@ -185,13 +213,14 @@ export class AiChat extends Component {
             for (let m of mappedMessages) {
                 if (!currentIds.has(m.id)) hasChanges = true;
             }
-            // Detectar borrados
+            // Detectar borrados (excepto optimistas)
             for (let m of this.state.messages) {
-                if (m.id < 1000000000000 && !newIds.has(m.id)) hasChanges = true;
+                if (m.id < OPTIMISTIC_ID_THRESHOLD && !newIds.has(m.id)) hasChanges = true;
             }
             if (localOptimistic.length !== finalOptimistic.length) hasChanges = true;
 
-            if (hasChanges || !silent) {
+            // SIEMPRE fusionar mensajes del servidor con los optimistas pendientes
+            if (hasChanges || !silent || finalOptimistic.length > 0) {
                 this.state.messages = [...mappedMessages, ...finalOptimistic];
                 if (!silent || hasChanges) this.scrollToBottom();
             }
@@ -215,6 +244,37 @@ export class AiChat extends Component {
 
     _safeParseJson(str) {
         try { return JSON.parse(str); } catch { return null; }
+    }
+
+    _formatActionSummary(action) {
+        if (!action) return "";
+        const tool = action.tool || action.type;
+        const params = action.params || action;
+        if (tool === "create_product") {
+            const name = params.name || "(sin nombre)";
+            const price = params.price ?? "?";
+            const cost = params.cost ?? "?";
+            const type = params.type || "consu";
+            return `Crear producto: ${name} · Precio: ${price} · Coste: ${cost} · Tipo: ${type}`;
+        }
+        if (tool === "adjust_stock") {
+            const productId = params.product_id ?? "?";
+            const quantity = params.quantity ?? "?";
+            return `Ajustar stock: producto ${productId} · Cantidad: ${quantity}`;
+        }
+        if (tool === "create_mrp_order") {
+            const productId = params.product_id ?? "?";
+            const quantity = params.quantity ?? "?";
+            return `Crear orden MRP: producto ${productId} · Cantidad: ${quantity}`;
+        }
+        if (tool === "create_bom") {
+            const productId = params.product_id ?? "?";
+            const components = Array.isArray(params.components)
+                ? params.components.length
+                : 0;
+            return `Crear BoM: producto ${productId} · Componentes: ${components}`;
+        }
+        return tool ? `Acción: ${tool}` : "Acción";
     }
 
     scrollToBottom() {
@@ -315,7 +375,7 @@ export class AiChat extends Component {
                 body: JSON.stringify({
                     jsonrpc: "2.0",
                     method: "call",
-                    params: { action_data: msg.pendingAction }
+                    params: { action_data: msg.pendingAction, message_id: msg.id }
                 }),
             });
 
@@ -325,15 +385,7 @@ export class AiChat extends Component {
             if (res.error) throw new Error(res.error);
 
             msg.pendingAction = null;
-            // Recargar para ver el mensaje de confirmación guardado por backend? 
-            // Execute action NO guarda mensaje en backend automáticamente (es otro endpoint).
-            // Deberíamos añadirlo manualmente al chat local
-            const feedback = res.message || "✅ Acción ejecutada";
-            this.state.messages.push({
-                role: "assistant",
-                text: feedback,
-                time: new Date().toLocaleTimeString().slice(0, 5)
-            });
+            await this._loadOrCreateSession();
 
         } catch (err) {
             this.notification.add(`Error: ${err.message}`, { type: "danger" });

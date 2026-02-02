@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="ai_production_assistant.AiAvatar">
+        <div class="ai-avatar-container" t-att-class="state.isOpen ? 'open' : ''">
+            
+            <!-- AVATAR BUTTON -->
+            <div class="ai-avatar-button" t-on-click="toggleWindow">
+                <div class="ai-avatar-visual position-relative overflow-hidden">
+                    <!-- Si existe la imagen personalizada, úsala. Si no, usa el icono. -->
+                    <img t-att-src="avatarUrl" 
+                         class="ai-avatar-img" 
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                         alt="AI Avatar"/>
+                    <i class="fa fa-robot fa-2x text-white" style="display:none;"/>
+                </div>
+                <!-- status bubble -->
+                <div class="ai-status-bubble" t-if="props.statusMessage">
+                    <t t-esc="props.statusMessage"/>
+                </div>
+                <!-- badge -->
+                <div class="ai-notification-badge" t-if="unreadCount > 0">
+                    <t t-esc="unreadCount"/>
+                </div>
+            </div>
+
+            <!-- MAIN WINDOW -->
+            <div class="ai-window-panel" t-if="state.isOpen">
+                <!-- Header -->
+                <div class="ai-window-header">
+                    <div class="d-flex align-items-center me-2">
+                         <div class="ai-header-avatar position-relative" t-on-click="toggleAvatarSelector" title="Cambiar Avatar" style="cursor: pointer;">
+                             <img t-att-src="avatarUrl" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover; border: 2px solid rgba(255,255,255,0.5);"/>
+                             <div class="ai-avatar-edit-badge">
+                                <i class="fa fa-pencil"/>
+                             </div>
+                         </div>
+                    </div>
+                    <div class="ai-tabs">
+                        <button class="ai-tab-btn" 
+                                t-att-class="state.activeTab === 'chat' ? 'active' : ''"
+                                t-on-click="() => this.switchTab('chat')">
+                            <i class="fa fa-comments me-2"/>Chat
+                        </button>
+                        <button class="ai-tab-btn" 
+                                t-att-class="state.activeTab === 'notifications' ? 'active' : ''"
+                                t-on-click="() => this.switchTab('notifications')">
+                            <i class="fa fa-bell me-2"/>Alertas
+                            <span class="badge rounded-pill bg-danger ms-1" t-if="unreadCount > 0" t-esc="unreadCount"/>
+                        </button>
+                    </div>
+                    <button class="ai-close-btn" t-on-click="toggleWindow">
+                        <i class="fa fa-times"/>
+                    </button>
+                </div>
+
+                <!-- Content -->
+                <div class="ai-window-content" style="position: relative;">
+                    <!-- AVATAR SELECTOR OVERLAY -->
+                    <div t-if="state.isAvatarSelectorOpen" class="ai-avatar-selector-overlay">
+                        <div class="ai-avatar-grid">
+                            <t t-foreach="avatars" t-as="av" t-key="av">
+                                <div class="ai-avatar-option" t-on-click="() => this.selectAvatar(av)" t-att-class="state.selectedAvatar === av ? 'selected' : ''">
+                                    <img t-att-src="'/ai_production_assistant/static/src/img/' + av"/>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+
+                    <t t-if="state.activeTab === 'chat'">
+                        <AiChat avatarUrl="avatarUrl"/>
+                    </t>
+                    <t t-elif="state.activeTab === 'notifications'">
+                        <div class="ai-notifications-list">
+                            <t t-if="notifications.length === 0">
+                                <div class="text-center p-4 text-muted">
+                                    <i class="fa fa-check-circle fa-3x mb-3 opacity-50"/>
+                                    <p>Todo en orden. No hay alertas.</p>
+                                </div>
+                            </t>
+                            <t t-foreach="notifications" t-as="notif" t-key="notif.id">
+                                <div class="ai-notification-card" t-att-class="'type-' + notif.type">
+                                    <div class="d-flex justify-content-between">
+                                        <h5 class="mb-1"><t t-esc="notif.title"/></h5>
+                                        <button class="btn btn-sm btn-link text-muted" t-on-click="() => this.dismissNotification(notif.id)">
+                                            <i class="fa fa-times"/>
+                                        </button>
+                                    </div>
+                                    <div class="ai-notif-body mb-2">
+                                        <t t-out="notif.body"/>
+                                    </div>
+                                    <t t-if="notif.action_payload">
+                                        <button class="btn btn-sm btn-primary w-100 mt-2"
+                                                t-on-click="() => this.executeAction(notif)">
+                                            <i class="fa fa-bolt me-1"/> Ejecutar Acción
+                                        </button>
+                                    </t>
+                                </div>
+                            </t>
+                        </div>
+                    </t>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

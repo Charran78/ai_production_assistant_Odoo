@@ -1,9 +1,11 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_ai_assistant_session,ai.assistant.session,ai_production_assistant.model_ai_assistant_session,base.group_user,1,1,1,1
-access_ai_assistant_message,ai.assistant.message,ai_production_assistant.model_ai_assistant_message,base.group_user,1,0,1,0
+access_ai_assistant_message,ai.assistant.message,ai_production_assistant.model_ai_assistant_message,base.group_user,1,1,1,0
 access_ai_prompt_wizard,ai.prompt.wizard,ai_production_assistant.model_ai_prompt_wizard,base.group_user,1,1,1,1
 access_ai_ollama_model,ai.ollama.model,ai_production_assistant.model_ai_ollama_model,base.group_user,1,1,1,1
 access_ai_ollama_config,ai.ollama.config,ai_production_assistant.model_ai_ollama_config,base.group_user,1,1,1,1
 access_ai_vector_config,ai.vector.config,ai_production_assistant.model_ai_vector_config,base.group_user,1,1,1,1
 access_ai_pending_action,ai.pending.action,ai_production_assistant.model_ai_pending_action,base.group_user,1,1,1,1
 access_ai_installation_wizard,ai.installation.wizard,ai_production_assistant.model_ai_installation_wizard,base.group_user,1,1,1,1
+access_ai_notification,ai.notification,ai_production_assistant.model_ai_notification,base.group_user,1,1,1,1
+access_ai_watchdog,ai.watchdog,ai_production_assistant.model_ai_watchdog,base.group_user,1,1,1,1

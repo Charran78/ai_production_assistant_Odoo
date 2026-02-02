@@ -137,7 +137,7 @@
                     
                     <!-- Paso 5: Completado -->
                     <group string="🎉 ¡Instalación Completada!" invisible="current_step != 'completion'">
-                        <div class="alert alert-success" role="alert">
+                        <div class="alert alert-success" role="status">
                             <h4 class="alert-heading">✅ ¡Todo listo!</h4>
                             <p>El Asistente de IA para Producción ha sido configurado correctamente.</p>
                             <hr/>

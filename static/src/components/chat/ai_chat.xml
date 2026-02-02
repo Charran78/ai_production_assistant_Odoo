@@ -2,12 +2,12 @@
 <templates xml:space="preserve">
     <t t-name="ai_production_assistant.AiChat" owl="1">
         <div t-attf-class="o_ai_chat_container h-100 d-flex flex-column {{ state.darkMode ? 'o_ai_chat_dark' : '' }}">
-            
+
             <!-- Header -->
             <div class="o_ai_chat_header p-3 border-bottom d-flex justify-content-between align-items-center shadow-sm">
                 <div class="d-flex align-items-center">
-                    <div class="avatar bg-gradient-primary text-white rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm fs-4" style="width: 42px; height: 42px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                        🤖
+                    <div class="avatar bg-gradient-primary text-white rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm fs-4 overflow-hidden" style="width: 42px; height: 42px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <img t-att-src="avatarUrl" style="width: 100%; height: 100%; object-fit: cover;"/>
                     </div>
                     <div>
                         <h5 class="m-0 fw-bold">Asistente IA</h5>
@@ -22,7 +22,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Controles -->
                 <div class="d-flex gap-2 align-items-center">
                     <button class="btn btn-sm btn-link text-decoration-none" t-on-click="toggleDarkMode" title="Cambiar modo">
@@ -41,7 +41,7 @@
                     </button>
                 </div>
             </div>
-            
+
             <!-- Settings Panel -->
             <div t-if="state.showSettings" class="p-3 border-bottom bg-white">
                 <div class="row g-3">
@@ -68,25 +68,26 @@
             <div class="o_ai_chat_messages flex-grow-1 p-4 overflow-auto" style="scroll-behavior: smooth;">
                 <t t-foreach="state.messages" t-as="msg" t-key="msg_index">
                     <div t-attf-class="d-flex mb-3 {{ msg.role === 'user' ? 'justify-content-end' : 'justify-content-start' }}">
-                        
+
                         <!-- Avatar Assistant -->
                         <div t-if="msg.role === 'assistant'" class="me-2 mt-auto">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center border o_ai_chat_bubble_assistant" style="width: 32px; height: 32px;">
-                                🤖
+                            <div class="rounded-circle d-flex align-items-center justify-content-center border o_ai_chat_bubble_assistant overflow-hidden" style="width: 32px; height: 32px;">
+                                <img t-if="props.avatarUrl" t-att-src="props.avatarUrl" style="width: 100%; height: 100%; object-fit: cover;"/>
+                                <span t-else="">🤖</span>
                             </div>
                         </div>
 
                         <!-- Bubble -->
-                        <div t-attf-class="p-3 shadow-sm {{ msg.role === 'user' ? 'bg-primary text-white' : 'o_ai_chat_bubble_assistant' }}" 
+                        <div t-attf-class="p-3 shadow-sm {{ msg.role === 'user' ? 'bg-primary text-white' : 'o_ai_chat_bubble_assistant' }}"
                              style="max-width: 80%; border-radius: 1.2rem; min-width: 80px;">
-                            
+
                             <!-- Hora -->
                             <div class="d-flex justify-content-between align-items-center mb-1 opacity-50 small" style="font-size: 0.7rem;">
-                                <span t-if="msg.role === 'assistant'" class="fw-bold me-2">IA</span>
+                                <span t-if="msg.role === 'assistant'" class="fw-bold me-2"><t t-esc="msg.expert || 'IA'"/></span>
                                 <span><t t-esc="msg.time"/></span>
                                 <span t-if="msg.role === 'user'" class="fw-bold ms-2 text-white">Tú</span>
                             </div>
-                            
+
                             <!-- Content -->
                             <div class="content" style="white-space: pre-wrap; word-wrap: break-word;">
                                 <t t-esc="msg.text"/>
@@ -97,9 +98,12 @@
                                 <div class="small fw-bold mb-2">
                                     <i class="fa fa-bolt me-1"/> Sugerencia de Acción
                                 </div>
+                                <div class="small mb-2">
+                                    <t t-esc="this._formatActionSummary(msg.pendingAction)"/>
+                                </div>
                                 <div class="d-flex gap-2">
                                     <button class="btn btn-sm btn-success flex-grow-1 shadow-sm" t-on-click="() => this.confirmAction(msg_index)">
-                                        <i class="fa fa-check me-1"/> Aprobar
+                                        <i class="fa fa-check me-1"/> Ejecutar
                                     </button>
                                     <button class="btn btn-sm btn-outline-secondary flex-grow-1" t-on-click="() => this.cancelAction(msg_index)">
                                         Descartar
@@ -134,9 +138,9 @@
             <!-- Input Area -->
             <div class="o_ai_chat_footer p-3 border-top">
                 <div class="input-group input-group-lg shadow-sm">
-                    <input type="text" 
-                           class="form-control border-0" 
-                           placeholder="Pregunta o pide una acción..." 
+                    <input type="text"
+                           class="form-control border-0"
+                           placeholder="Pregunta o pide una acción..."
                            t-model="state.input"
                            t-on-keydown="_onKeydown"/>
                     <button class="btn btn-primary px-4" type="button" t-on-click="sendMessage" t-att-disabled="state.isThinking">

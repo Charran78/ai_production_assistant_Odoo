@@ -462,6 +462,30 @@ service odoo restart
 3. 📊 **Configurar alertas** y umbrales de monitorización
 4. 🚀 **¡Comenzar a usar el sistema!**
 
+## 🧾 Contrato de Calidad y Entrega
+
+### Compromisos obligatorios
+
+- Cada nueva feature y proceso incluye pruebas automáticas completas
+- No se integra código sin validación de calidad, seguridad y resultados
+- Se aplican las mejores prácticas y estándares acordados
+
+### Estándares y prácticas base
+
+- SGC (ISO 9001 / ISO/IEC 90003) para estructura de procesos
+- SDLC (ISO/IEC/IEEE 12207) para ciclo de vida formal
+- QA de producto (ISO/IEC 25000 / ISO 5055)
+- QC y pruebas (ISO/IEC/IEEE 29119)
+- Estándares de código (PEP 8), seguridad (OWASP Top 10)
+- DevOps/Ágil con CI/CD y control de versiones
+
+### Plan de implementación gradual
+
+- Fase 1: control de versiones, guía de estilo, pruebas unitarias críticas
+- Fase 2: seguridad, manejo de errores, CI básica
+- Fase 3: code review, documentación viva, gestión de dependencias
+- Fase 4: auditoría de procesos, métricas de calidad, plan de pruebas formal
+
 ## 📈 Roadmap 2026
 
 ### 🎯 Fase 1: MVP Crítico (Q1 2026)

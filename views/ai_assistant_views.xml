@@ -52,9 +52,9 @@
                                     <templates>
                                         <t t-name="card">
                                             <div t-attf-class="d-flex w-100 mb-2 #{record.role.raw_value == 'user' ? 'justify-content-end' : 'justify-content-start'}">
-                                                <div t-attf-class="p-3 shadow-sm rounded-3 #{record.role.raw_value == 'user' ? 'bg-primary text-white' : 'bg-light text-dark'}" 
+                                                <div t-attf-class="p-3 shadow-sm rounded-3 #{record.role.raw_value == 'user' ? 'bg-primary text-white' : 'bg-light text-dark'}"
                                                      style="max-width: 85%; min-width: 200px; border-radius: 15px !important;">
-                                                    
+
                                                     <div class="d-flex justify-content-between mb-1 small opacity-75 border-bottom pb-1" style="font-size: 0.8rem;">
                                                         <strong>
                                                             <t t-if="record.role.raw_value == 'user'">👤 Tú</t>
@@ -92,7 +92,7 @@
                 <templates>
                     <t t-name="card">
                         <div t-attf-class="d-flex w-100 mb-3 #{record.role.raw_value == 'user' ? 'justify-content-end' : 'justify-content-start'}">
-                            <div t-attf-class="card shadow-sm border-0 p-3 #{record.role.raw_value == 'user' ? 'bg-primary text-white' : 'bg-light text-dark'}" 
+                            <div t-attf-class="card shadow-sm border-0 p-3 #{record.role.raw_value == 'user' ? 'bg-primary text-white' : 'bg-light text-dark'}"
                                  style="max-width: 80%; border-radius: 15px;">
                                 <div class="d-flex justify-content-between align-items-center mb-1 small opacity-75">
                                     <strong><t t-esc="record.role.raw_value == 'user' ? 'Tú' : 'IA'"/></strong>
@@ -107,5 +107,5 @@
                 </templates>
             </kanban>
         </field>
-    </record>    
+    </record>
 </odoo>

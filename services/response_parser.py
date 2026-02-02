@@ -2,8 +2,9 @@
 import json
 import re
 
+
 class ResponseParser:
-    ACTION_PATTERN = r'\[\[ACTION_DATA:\s*(.*?)\s*\]\]'
+    ACTION_PATTERN = r"\[\[ACTION_DATA:\s*(.*?)\s*\]\]"
 
     def parse_actions(self, raw_text):
         """
@@ -12,7 +13,7 @@ class ResponseParser:
         """
         actions = []
         clean_text = raw_text
-        
+
         if not raw_text:
             return "", []
 
@@ -25,9 +26,11 @@ class ResponseParser:
                     actions.append(action_data)
             except json.JSONDecodeError:
                 continue
-        
+
         # Eliminar los bloques del texto mostrado al usuario
-        clean_text = re.sub(self.ACTION_PATTERN, '', clean_text, flags=re.DOTALL).strip()
+        clean_text = re.sub(
+            self.ACTION_PATTERN, "", clean_text, flags=re.DOTALL
+        ).strip()
         return clean_text, actions
 
     def format_html(self, text):
@@ -35,7 +38,9 @@ class ResponseParser:
         if not text:
             return ""
         # Saltos de línea a <br/>
-        html = text.replace('\n', '<br/>')
+        html = text.replace("\n", "<br/>")
         # Resaltar bloques de código
-        html = re.sub(r'```(.*?)```', r'<pre><code>\1</code></pre>', html, flags=re.DOTALL)
+        html = re.sub(
+            r"```(.*?)```", r"<pre><code>\1</code></pre>", html, flags=re.DOTALL
+        )
         return html
