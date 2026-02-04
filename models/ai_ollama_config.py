@@ -51,12 +51,25 @@ class AIOllamaConfig(models.Model):
             self.search([("id", "not in", self.ids)]).write({"active": False})
         return super().write(vals)
 
+    @api.constrains("url")
+    def _check_url(self):
+        for rec in self:
+            if not rec.url:
+                raise ValidationError(self.env._("La URL no puede estar vacía."))
+            if not rec.url.startswith(("http://", "https://")):
+                raise ValidationError(
+                    self.env._("La URL debe comenzar con http:// o https://")
+                )
+
     def action_test_connection(self):
         """Prueba la conexión con el servidor Ollama."""
         self.ensure_one()
+        # Validación de seguridad: no permitir redirecciones a otros protocolos
         try:
             response = requests.get(
-                f"{self.url.rstrip('/')}/api/tags", timeout=self.timeout
+                f"{self.url.rstrip('/')}/api/tags", 
+                timeout=self.timeout,
+                allow_redirects=False  # Prevenir SSRF via redirección
             )
             response.raise_for_status()
 

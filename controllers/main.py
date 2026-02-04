@@ -10,7 +10,12 @@ from odoo import http, fields
 from odoo.http import request, Response
 
 from ..services import AgentCore, get_minimal_context, OllamaService
-from ..services.agent_core import parse_create_product_prompt
+from ..services.agent_core import parse_create_product_prompt, parse_inventory_prompt
+from ..services.sales_purchase_tools import (
+    parse_purchase_orders_prompt,
+    parse_sale_orders_prompt,
+)
+from ..services.rag_service import parse_docs_prompt, parse_mail_prompt
 
 _logger = logging.getLogger(__name__)
 
@@ -76,30 +81,17 @@ class AiController(http.Controller):
                     "state": "done",
                 }
             )
-
             agent = AgentCore(request.env)
             if model:
                 ollama = OllamaService(request.env)
                 ollama.model = model
 
             prompt_lower = (prompt or "").lower()
-            approval_terms = [
-                "ejecuta",
-                "ejecutar",
-                "crealo",
-                "créalo",
-                "crea",
-                "hazlo",
-                "sí",
-                "si",
-                "ok",
-                "vale",
-                "confirmo",
-                "confirmar",
-                "aprobado",
-                "aprueba",
-                "adelante",
-            ]
+            
+            # La auto-aprobación por palabras clave es arriesgada. 
+            # Se deshabilita para favorcer el uso de botones en la UI o comandos explícitos.
+            auto_approval = False
+
             pending_msg = env["ai.assistant.message"].search(
                 [
                     ("session_id", "=", session.id),
@@ -110,7 +102,6 @@ class AiController(http.Controller):
                 limit=1,
             )
 
-            auto_approval = any(term in prompt_lower for term in approval_terms)
             if pending_msg and auto_approval:
                 try:
                     action_data = json.loads(pending_msg.pending_action)
@@ -142,6 +133,228 @@ class AiController(http.Controller):
                     _logger.error("Error ejecutando aprobación directa: %s", str(e))
 
             # 3. Llamar al Agente con HISTORIAL
+
+            inventory_action = parse_inventory_prompt(prompt)
+            if inventory_action:
+                response_content = "[search_products] Preparando consulta..."
+                action_json = json.dumps(inventory_action)
+                message = env["ai.assistant.message"].create(
+                    {  # type: ignore
+                        "session_id": session.id,
+                        "role": "assistant",
+                        "content": response_content.replace("\n", "<br>"),
+                        "state": "done",
+                        "pending_action": action_json,
+                        "expert_name": "Assistant",
+                    }
+                )
+                try:
+                    auto_result = agent.execute_approved_action(inventory_action)
+                    response_content = auto_result.get("response", response_content)
+                    message.write(
+                        {
+                            "content": response_content.replace("\n", "<br>"),
+                            "pending_action": False,
+                        }
+                    )
+                except Exception as e:
+                    _logger.error("Error en auto-ejecución inventario: %s", str(e))
+
+                result = {
+                    "response": response_content,
+                    "expert_name": "Assistant",
+                    "model_used": model or "default",
+                }
+                return Response(json.dumps(result), content_type="application/json")
+
+            prompt_lower = (prompt or "").lower()
+            production_terms = [
+                "orden",
+                "órden",
+                "ordenes",
+                "órdenes",
+                "fabricación",
+                "fabricacion",
+                "mrp",
+                "producción",
+                "produccion",
+            ]
+            if any(term in prompt_lower for term in production_terms):
+                state = "delayed" if "retras" in prompt_lower else ""
+                production_action = {
+                    "tool": "search_mrp_orders",
+                    "params": {"state": state},
+                }
+                response_content = "[search_mrp_orders] Preparando consulta..."
+                action_json = json.dumps(production_action)
+                message = env["ai.assistant.message"].create(
+                    {  # type: ignore
+                        "session_id": session.id,
+                        "role": "assistant",
+                        "content": response_content.replace("\n", "<br>"),
+                        "state": "done",
+                        "pending_action": action_json,
+                        "expert_name": "Assistant",
+                    }
+                )
+                try:
+                    auto_result = agent.execute_approved_action(production_action)
+                    response_content = auto_result.get("response", response_content)
+                    message.write(
+                        {
+                            "content": response_content.replace("\n", "<br>"),
+                            "pending_action": False,
+                        }
+                    )
+                except Exception as e:
+                    _logger.error("Error en auto-ejecución producción: %s", str(e))
+
+                result = {
+                    "response": response_content,
+                    "expert_name": "Assistant",
+                    "model_used": model or "default",
+                }
+                return Response(json.dumps(result), content_type="application/json")
+
+            sale_action = parse_sale_orders_prompt(prompt)
+            if sale_action:
+                response_content = "[search_sale_orders] Preparando consulta..."
+                action_json = json.dumps(sale_action)
+                message = env["ai.assistant.message"].create(
+                    {
+                        "session_id": session.id,
+                        "role": "assistant",
+                        "content": response_content.replace("\n", "<br>"),
+                        "state": "done",
+                        "pending_action": action_json,
+                        "expert_name": "SalesExpert",
+                    }
+                )
+                try:
+                    auto_result = agent.execute_approved_action(sale_action)
+                    response_content = auto_result.get("response", response_content)
+                    message.write(
+                        {
+                            "content": response_content.replace("\n", "<br>"),
+                            "pending_action": False,
+                        }
+                    )
+                except Exception as e:
+                    _logger.error("Error en auto-ejecución ventas: %s", str(e))
+
+                return Response(
+                    json.dumps({
+                        "response": response_content,
+                        "expert_name": "SalesExpert",
+                        "model_used": model or "default",
+                    }),
+                    content_type="application/json",
+                )
+
+            purchase_action = parse_purchase_orders_prompt(prompt)
+            if purchase_action:
+                response_content = "[search_purchase_orders] Preparando consulta..."
+                action_json = json.dumps(purchase_action)
+                message = env["ai.assistant.message"].create(
+                    {
+                        "session_id": session.id,
+                        "role": "assistant",
+                        "content": response_content.replace("\n", "<br>"),
+                        "state": "done",
+                        "pending_action": action_json,
+                        "expert_name": "PurchaseExpert",
+                    }
+                )
+                try:
+                    auto_result = agent.execute_approved_action(purchase_action)
+                    response_content = auto_result.get("response", response_content)
+                    message.write(
+                        {
+                            "content": response_content.replace("\n", "<br>"),
+                            "pending_action": False,
+                        }
+                    )
+                except Exception as e:
+                    _logger.error("Error en auto-ejecución compras: %s", str(e))
+
+                return Response(
+                    json.dumps({
+                        "response": response_content,
+                        "expert_name": "PurchaseExpert",
+                        "model_used": model or "default",
+                    }),
+                    content_type="application/json",
+                )
+
+            docs_action = parse_docs_prompt(prompt)
+            if docs_action:
+                response_content = "[search_docs] Preparando consulta..."
+                action_json = json.dumps(docs_action)
+                message = env["ai.assistant.message"].create(
+                    {
+                        "session_id": session.id,
+                        "role": "assistant",
+                        "content": response_content.replace("\n", "<br>"),
+                        "state": "done",
+                        "pending_action": action_json,
+                        "expert_name": "DocsExpert",
+                    }
+                )
+                try:
+                    auto_result = agent.execute_approved_action(docs_action)
+                    response_content = auto_result.get("response", response_content)
+                    message.write(
+                        {
+                            "content": response_content.replace("\n", "<br>"),
+                            "pending_action": False,
+                        }
+                    )
+                except Exception as e:
+                    _logger.error("Error en auto-ejecución docs: %s", str(e))
+
+                return Response(
+                    json.dumps({
+                        "response": response_content,
+                        "expert_name": "DocsExpert",
+                        "model_used": model or "default",
+                    }),
+                    content_type="application/json",
+                )
+
+            mail_action = parse_mail_prompt(prompt)
+            if mail_action:
+                response_content = "[search_mail] Preparando consulta..."
+                action_json = json.dumps(mail_action)
+                message = env["ai.assistant.message"].create(
+                    {
+                        "session_id": session.id,
+                        "role": "assistant",
+                        "content": response_content.replace("\n", "<br>"),
+                        "state": "done",
+                        "pending_action": action_json,
+                        "expert_name": "MailExpert",
+                    }
+                )
+                try:
+                    auto_result = agent.execute_approved_action(mail_action)
+                    response_content = auto_result.get("response", response_content)
+                    message.write(
+                        {
+                            "content": response_content.replace("\n", "<br>"),
+                            "pending_action": False,
+                        }
+                    )
+                except Exception as e:
+                    _logger.error("Error en auto-ejecución correo: %s", str(e))
+
+                return Response(
+                    json.dumps({
+                        "response": response_content,
+                        "expert_name": "MailExpert",
+                        "model_used": model or "default",
+                    }),
+                    content_type="application/json",
+                )
 
             direct_action = parse_create_product_prompt(prompt)
             if direct_action:

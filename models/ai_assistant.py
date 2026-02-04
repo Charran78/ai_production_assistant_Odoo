@@ -33,7 +33,8 @@ class AIAssistantSession(models.Model):
         Crea un mensaje del usuario y prepara un mensaje pendiente para el asistente.
         """
         self.ensure_one()
-        
+        if context_ref:
+            prompt = "%s\nContexto: %s" % (prompt, context_ref.display_name)
         # 1. Crear el mensaje del usuario
         self.env["ai.assistant.message"].create({
             "session_id": self.id,
@@ -112,11 +113,39 @@ class AIAssistantMessage(models.Model):
         [("done", "Procesado"), ("pending", "Pendiente"), ("error", "Error")],
         default="done",
     )
-
     # Para mensajes pendientes
     raw_prompt = fields.Text(string="Prompt Original")
     pending_action = fields.Text(string="Acción Pendiente (JSON)")
     expert_name = fields.Char(string="Experto MoE")
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        for record in records:
+            record._send_bus_notification()
+        return records
+
+    def write(self, vals):
+        res = super().write(vals)
+        if "content" in vals or "state" in vals or "pending_action" in vals:
+            for record in self:
+                record._send_bus_notification()
+        return res
+
+    def _send_bus_notification(self):
+        """Envía una notificación al bus de Odoo para actualizar el chat en tiempo real."""
+        self.ensure_one()
+        try:
+            # Canal por usuario
+            channel = f"ai.assistant.message.{self.session_id.user_id.id}"
+            payload = {
+                "type": "new_message",
+                "session_id": self.session_id.id,
+                "message_id": self.id,
+            }
+            self.env["bus.bus"]._sendone(channel, "ai_message", payload)
+        except Exception as e:
+            _logger.error("Error enviando notificación al bus: %s", str(e))
 
     def process_message(self):
         """Procesa un mensaje pendiente con AgentCore."""

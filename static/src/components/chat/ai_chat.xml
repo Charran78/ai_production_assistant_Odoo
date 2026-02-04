@@ -43,11 +43,11 @@
             </div>
 
             <!-- Settings Panel -->
-            <div t-if="state.showSettings" class="p-3 border-bottom bg-white">
+            <div t-if="state.showSettings" class="o_ai_chat_settings p-3 border-bottom">
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label small fw-bold text-uppercase opacity-75">Seleccionar Modelo</label>
-                        <select class="form-select form-select-sm" t-on-change="onModelChange">
+                    <select class="form-select form-select-sm" t-on-change="onModelChange" id="ai_model_select" name="ai_model_select">
                             <t t-foreach="state.availableModels" t-as="model" t-key="model.id">
                                 <option t-att-value="model.name" t-att-selected="model.name === state.selectedModel">
                                     <t t-esc="model.name"/>
@@ -138,7 +138,7 @@
             <!-- Input Area -->
             <div class="o_ai_chat_footer p-3 border-top">
                 <div class="input-group input-group-lg shadow-sm">
-                    <input type="text"
+                    <input type="text" id="ai_chat_input" name="ai_chat_input"
                            class="form-control border-0"
                            placeholder="Pregunta o pide una acción..."
                            t-model="state.input"

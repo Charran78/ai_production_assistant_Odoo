@@ -11,5 +11,25 @@
             <field name="interval_type">minutes</field>
             <field name="active" eval="True"/>
         </record>
+        <record id="ir_cron_ai_watchdog" model="ir.cron">
+            <field name="name">AI Assistant: Watchdog Proactivo</field>
+            <field name="model_id" ref="model_ai_watchdog"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_run_watchdogs()</field>
+            <field name="user_id" ref="base.user_root"/>
+            <field name="interval_number">5</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
+        <record id="ir_cron_ai_rag_index" model="ir.cron">
+            <field name="name">AI Assistant: Indexar RAG</field>
+            <field name="model_id" ref="model_ai_vector_config"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_index_rag()</field>
+            <field name="user_id" ref="base.user_root"/>
+            <field name="interval_number">15</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
     </data>
 </odoo>

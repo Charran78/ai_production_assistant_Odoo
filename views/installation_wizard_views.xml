@@ -6,12 +6,16 @@
         <field name="arch" type="xml">
             <form string="Asistente de Instalación - AI Production Assistant">
                 <header>
-                    <progressbar value="progress" max="100" invisible="current_step == 'completion'"/>
-                    <h2>🚀 Configuración Automática del Asistente de IA</h2>
-                    <p>Este asistente te guiará paso a paso en la configuración de todo el sistema</p>
+                    <field name="current_step" widget="statusbar" statusbar_visible="detection,model_selection,configuration,advanced_config,completion"/>
                 </header>
                 
                 <sheet>
+                    <group string="Bienvenida">
+                        <div>
+                            <h2>🚀 Configuración Automática del Asistente de IA</h2>
+                            <p>Este asistente te guiará paso a paso en la configuración de todo el sistema</p>
+                        </div>
+                    </group>
                     <!-- Paso 1: Detección de Ollama -->
                     <group string="Paso 1: Detección de Dependencias" invisible="current_step != 'detection'">
                         <group>

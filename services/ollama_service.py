@@ -31,6 +31,11 @@ class OllamaService:
                 .sudo()
                 .get_param("ai_production_assistant.selected_model", "gemma3:4b")
             )
+            self.embedding_model = (
+                self.env["ir.config_parameter"]
+                .sudo()
+                .get_param("ai_production_assistant.embedding_model", "nomic-embed-text")
+            )
         else:
             # Defaults si no hay config
             self.base_url = "http://localhost:11434"
@@ -38,6 +43,7 @@ class OllamaService:
             self.num_ctx = 1024
             self.temperature = 0.7
             self.model = "gemma3:4b"
+            self.embedding_model = "nomic-embed-text"
 
     def generate(self, prompt, model=None, system=None):
         """
@@ -104,3 +110,39 @@ class OllamaService:
             return {"status": "error", "message": f"Status: {response.status_code}"}
         except Exception as e:
             return {"status": "error", "message": str(e)}
+
+    def embed(self, text, model=None):
+        if not text:
+            return None
+        primary = model or getattr(self, "embedding_model", None) or self.model
+        url = f"{self.base_url}/api/embeddings"
+        candidates = []
+        if primary:
+            candidates.append(primary)
+        if primary != "all-minilm":
+            candidates.append("all-minilm")
+        if primary != "nomic-embed-text":
+            candidates.append("nomic-embed-text")
+        if self.model and self.model not in candidates:
+            candidates.append(self.model)
+        installed = None
+        try:
+            tags = requests.get(f"{self.base_url}/api/tags", timeout=10)
+            if tags.status_code == 200:
+                data = tags.json().get("models", [])
+                names = {m.get("name") for m in data if m.get("name")}
+                installed = names
+        except Exception:
+            installed = None
+        try:
+            for candidate in candidates:
+                if installed is not None and candidate not in installed:
+                    continue
+                r = requests.post(url, json={"model": candidate, "prompt": text}, timeout=self.timeout)
+                if r.status_code == 200:
+                    return r.json().get("embedding")
+            _logger.warning("Ollama embeddings no disponibles. Instale un modelo de embeddings como 'nomic-embed-text' o 'all-minilm'.")
+            return None
+        except Exception as e:
+            _logger.error("Error embeddings: %s", str(e))
+            return None

@@ -80,6 +80,27 @@ No es solo un "asistente de chat" - es un **Sistema de Inteligencia Operativa Em
 - **Vectorización semántica** con Qdrant para búsqueda precisa
 - **Filtros dinámicos** por usuario, empresa, fechas
 
+### 🔔 **Notificaciones en Tiempo Real (bus)**
+
+- **Entrega instantánea** de avisos mediante bus y websocket compartido
+- **Systray AiAvatar** con pestaña de notificaciones y contador de no leídos
+- **Acciones desde la notificación** con payload seguro (ejecuta herramientas permitidas)
+- **Reglas de seguridad**: cada usuario solo ve sus notificaciones
+
+### 🛡️ **Watchdog Proactivo**
+
+- **Tipos de chequeo**: retraso de fechas, nivel de stock, dominio personalizado
+- **Umbrales configurables** y filtro de dominio adicional
+- **Ejecución automática por cron** cada 5 minutos
+- **Notificaciones con acción recomendada** (p. ej. abrir órdenes retrasadas)
+
+### 📚 **RAG para Documentos y Correo**
+
+- **Indexación de ir.attachment** (text/plain, text/html) con limpieza HTML
+- **Indexación de mail.message** (email, comment) con asunto + cuerpo
+- **Búsqueda semántica** con herramientas search_docs y search_mail
+- **Cron de indexación** cada 15 minutos con control incremental
+
 ### ⚡ **Rendimiento y Robustez**
 
 - **Timeouts extendidos** (600s) para procesamiento de LLMs locales
@@ -223,6 +244,21 @@ Embedding Model: all-MiniLM-L6-v2
 Dimensiones: 384
 ```
 
+#### Conector Qdrant en Odoo
+
+1. Ir a **Fabricación → Asistente IA → Configuración → Conector Qdrant**
+2. Completar URL, nombre de colección y API Key (si aplica)
+3. Usar **Probar Conexión** para validar disponibilidad
+4. Activar el registro para que sea el **config activo**
+
+#### Tareas Programadas (Cron)
+
+- **AI Assistant: Procesar Cola Ollama**: 1 min
+- **AI Assistant: Watchdog Proactivo**: 5 min
+- **AI Assistant: Indexar RAG**: 15 min
+
+Estas tareas se crean en [ir_cron.xml](file:///h:/users/xpite/Desktop/odoo-19.0/custom_addons/ai_production_assistant/data/ir_cron.xml) y pueden ajustarse desde Configuración técnica de Odoo.
+
 ### 4. 👥 Configuración de Permisos
 
 ```bash
@@ -266,7 +302,36 @@ Dimensiones: 384
 5. **Confirmación**: Notificación con resultados
 ```
 
-### 🔍 Búsqueda Semántica (RAG)
+### � Alertas Proactivas (Watchdog)
+
+1. Ir a **Fabricación → Asistente IA → Configuración → Watchdogs**
+2. Crear un watchdog indicando **modelo**, **tipo de chequeo** y **umbral**
+3. Opcional: añadir **domain_filter** para afinar registros
+4. El cron ejecuta y envía **notificaciones en tiempo real** al usuario
+
+Tipos disponibles:
+- date_delay: detecta fechas vencidas (date_deadline, commitment_date, date_planned)
+- stock_level: detecta cantidad ≤ umbral en productos/entidades con campo de cantidad
+- custom_domain: alerta cuando el dominio retorna registros
+
+### 📚 Búsqueda en Documentación y Correo (RAG)
+
+- Documentación: solicitar “buscar en documentación …” (search_docs)
+- Correo: solicitar “revisar el correo …” (search_mail)
+
+Ejemplos:
+- “buscar en documentación el procedimiento de calibración”
+- “revisar el correo urgente del proveedor”
+
+La respuesta muestra **título** y **fragmento** del contenido relevante. Requiere tener Qdrant operativo y configuración activa.
+
+### ⚡ Notificaciones en Tiempo Real
+
+- El componente **AiAvatar** suscribe el canal del usuario y muestra cada aviso al instante
+- Las notificaciones pueden incluir **payload de acción** para ejecutar herramientas en backend
+- Vista administrativa disponible en **Fabricación → Asistente IA → Notificaciones**
+
+### �🔍 Búsqueda Semántica (RAG)
 
 ```python
 # Estructura de Expertos Especializados
@@ -366,9 +431,10 @@ ai_production_assistant/
 │   ├── ai_rag.py            # Sistema RAG
 │   └── ai_actions.py        # Acciones automatizadas
 ├── services/
-│   ├── context_service.py   # Construcción contexto
+│   ├── agent_core.py        # Núcleo del agente y herramientas
+│   ├── rag_service.py       # Indexación/búsqueda vectorial (docs/correo)
 │   ├── ollama_service.py    # Comunicación Ollama
-│   └── vector_service.py    # Búsqueda semántica
+│   └── moe_router.py        # Enrutador MoE
 ├── static/
 │   ├── description/
 │   │   ├── icon.png         # Icono 100x100
@@ -381,7 +447,8 @@ ai_production_assistant/
 │   ├── menu.xml             # Menús principales
 │   ├── ai_assistant_views.xml
 │   ├── ai_ollama_views.xml
-│   └── ai_config_views.xml
+│   ├── ai_notification_views.xml
+│   └── ai_watchdog_views.xml
 ├── security/
 │   └── ir.model.access.csv  # Permisos
 ├── __init__.py
@@ -399,8 +466,10 @@ ai_production_assistant/
 1. **Chat Principal**: Interfaz conversacional moderna
 2. **Historial**: Listado de sesiones con filtros
 3. **Configuración**: Parámetros de Ollama y RAG
-4. **Acciones Pendientes**: Panel de aprobación/rechazo
-5. **Análisis**: Métricas de uso y efectividad
+4. **Watchdogs**: Configurar vigilancia proactiva y umbrales
+5. **Notificaciones**: Bandeja de avisos e historial por usuario
+6. **Acciones Pendientes**: Panel de aprobación/rechazo
+7. **Análisis**: Métricas de uso y efectividad
 
 ### 📈 Métricas y KPIs
 
@@ -439,6 +508,7 @@ WHERE create_date >= NOW() - INTERVAL '30 days'
 - 📋 Ajustes de inventario automatizados
 - 🔄 Optimización de niveles de stock
 - 📈 Análisis de rotación de productos
+ - 🔔 Watchdog de stock crítico con alertas en tiempo real
 
 ## 🚀 Primeros Pasos
 
@@ -446,7 +516,7 @@ WHERE create_date >= NOW() - INTERVAL '30 days'
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/tu-usuario/ai-production-assistant.git
+git clone https://github.com/charran78/ai-production-assistant.git
 
 # Instalar en Odoo 19
 cp -r ai_production_assistant /ruta/a/odoo/addons/
@@ -461,6 +531,12 @@ service odoo restart
 2. 🔧 **Activar expertos** necesarios para tu negocio
 3. 📊 **Configurar alertas** y umbrales de monitorización
 4. 🚀 **¡Comenzar a usar el sistema!**
+
+### Pruebas rápidas
+
+- Verificar auto-ejecución y parseos: [tests/test_auto_execution.py](file:///h:/users/xpite/Desktop/odoo-19.0/custom_addons/ai_production_assistant/tests/test_auto_execution.py)
+- Probar conexión Qdrant desde **Conector Qdrant**
+- Crear un **Watchdog** de prueba (stock ≤ 0) y observar la notificación en el systray
 
 ## 🧾 Contrato de Calidad y Entrega
 
@@ -568,7 +644,7 @@ Este módulo está licenciado bajo **LGPL-3.0** - ver el archivo [LICENSE](LICEN
 
 ---
 
-*Última actualización: Enero 2026*  
+*Última actualización: Febrero 2026*  
 *Versión del módulo: 1.0.0*  
 *Compatibilidad: Odoo 19.0*
 

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_ai_notification_list" model="ir.ui.view">
+        <field name="name">ai.notification.list</field>
+        <field name="model">ai.notification</field>
+        <field name="arch" type="xml">
+            <list string="Notificaciones IA">
+                <field name="name"/>
+                <field name="user_id"/>
+                <field name="notification_type"/>
+                <field name="is_read"/>
+                <field name="is_dismissed"/>
+                <field name="create_date"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ai_notification_form" model="ir.ui.view">
+        <field name="name">ai.notification.form</field>
+        <field name="model">ai.notification</field>
+        <field name="arch" type="xml">
+            <form string="Notificación IA">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="user_id"/>
+                        <field name="notification_type"/>
+                    </group>
+                    <group>
+                        <field name="is_read"/>
+                        <field name="is_dismissed"/>
+                    </group>
+                    <group>
+                        <field name="body"/>
+                        <field name="action_payload"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ai_notification" model="ir.actions.act_window">
+        <field name="name">Notificaciones</field>
+        <field name="res_model">ai.notification</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

@@ -4,6 +4,8 @@ import { Component, useState, useRef, onMounted, onPatched, onWillStart, onWillU
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { deserializeDateTime, formatDateTime } from "@web/core/l10n/dates";
+import { user } from "@web/core/user";
+import { session } from "@web/session";
 
 export class AiChat extends Component {
     static template = "ai_production_assistant.AiChat";
@@ -11,6 +13,7 @@ export class AiChat extends Component {
     setup() {
         this.orm = useService("orm");
         this.notification = useService("notification");
+        this.bus = useService("bus_service");
 
         this.state = useState({
             messages: [],
@@ -21,41 +24,37 @@ export class AiChat extends Component {
             sessionId: null,
             sessionName: "",
             showSettings: false,
-            darkMode: false, // ¡Vuelve el Dark Mode!
-            userHasSelectedModel: false, // Nuevo estado para saber si el usuario ha cambiado el modelo
+            darkMode: false,
+            userHasSelectedModel: false,
             currentAvatar: localStorage.getItem('ai_assistant_avatar') || 'avatar.png'
         });
 
         this.messagesEndRef = useRef("messagesEnd");
-        this.pollingInterval = null;
 
         onWillStart(async () => {
             console.log("[AI Chat] Iniciando...");
-            // Cargar estado de dark mode (simple localstorage)
             this.state.darkMode = localStorage.getItem("ai_chat_dark_mode") === "true";
-
             await this._loadModels();
             await this._loadOrCreateSession();
         });
 
         onMounted(() => {
             this.scrollToBottom();
-            // Polling para actualizar mensajes (cada 3s)
-            this.pollingInterval = setInterval(() => this._refreshMessages(), 3000);
-            
-            // Escuchar cambios de avatar globales
+            const uid = session.user_id || user.userId;
+            const channel = `ai.assistant.message.${uid}`;
+            this.bus.addChannel(channel);
+            this.bus.addEventListener("notification", this._onBusNotification.bind(this));
             window.addEventListener('ai-avatar-changed', this._onAvatarChanged.bind(this));
         });
 
         onPatched(() => this.scrollToBottom());
 
-        // Limpiar intervalo al destruir
         onWillUnmount(() => {
-            if (this.pollingInterval) clearInterval(this.pollingInterval);
             window.removeEventListener('ai-avatar-changed', this._onAvatarChanged.bind(this));
+            this.state.isThinking = false;
         });
     }
-    
+
     _onAvatarChanged(ev) {
         if (ev.detail && ev.detail.avatar) {
             this.state.currentAvatar = ev.detail.avatar;
@@ -63,17 +62,17 @@ export class AiChat extends Component {
     }
 
     get avatarUrl() {
-        // Prioridad: Prop (si viene del padre) > Estado local (sincronizado) > Default
         if (this.props.avatarUrl) return this.props.avatarUrl;
         return `/ai_production_assistant/static/src/img/${this.state.currentAvatar}`;
     }
 
-    async _refreshMessages() {
-        if (!this.state.sessionId) return;
-        // Solo recargar si no estamos escribiendo ni esperando respuesta inmediata
-        // (aunque el backend sea async, evitamos parpadeos si el user está activo)
-        // Pero para el caso "me fui y volví", esto es clave.
-        await this._loadMessages(true); // true = silent (sin scroll forzado si no hay cambios)
+    async _onBusNotification({ detail: notifications }) {
+        for (const { payload, type } of notifications) {
+            if (type === "ai_message" && payload.session_id === this.state.sessionId) {
+                console.log("[AI Chat] Notificación recibida:", payload);
+                await this._loadMessages(true);
+            }
+        }
     }
 
     toggleDarkMode() {
@@ -86,7 +85,7 @@ export class AiChat extends Component {
             const models = await this.orm.searchRead(
                 "ai.ollama.model",
                 [['active', '=', true]],
-                ['name', 'size_mb']
+                ['id', 'name', 'size_mb']
             );
             this.state.availableModels = models;
 
@@ -187,6 +186,12 @@ export class AiChat extends Component {
                     { role: "assistant", text: "¡Hola! Soy tu asistente de operaciones." }
                 ];
                 return;
+            }
+
+            const lastServerMsg = mappedMessages[mappedMessages.length - 1];
+            if (lastServerMsg) {
+                if (lastServerMsg.role === "assistant") this.state.isThinking = false;
+                if (lastServerMsg.role === "user") this.state.isThinking = true;
             }
 
             // SMART MERGE: 
@@ -302,7 +307,10 @@ export class AiChat extends Component {
         if (!confirm("¿Borrar historial?")) return;
 
         try {
-            const msgIds = this.state.messages.filter(m => m.id).map(m => m.id);
+            const OPTIMISTIC_ID_THRESHOLD = 1000000000000;
+            const msgIds = this.state.messages
+                .filter(m => typeof m.id === "number" && m.id < OPTIMISTIC_ID_THRESHOLD)
+                .map(m => m.id);
             if (msgIds.length > 0) {
                 await this.orm.unlink("ai.assistant.message", msgIds);
             }
@@ -412,6 +420,15 @@ export class AiChat extends Component {
             await this.orm.write("ai.assistant.session", [this.state.sessionId], {
                 model_ollama: this.state.selectedModel
             });
+        }
+        try {
+            await this.orm.call("ir.config_parameter", "set_param", [
+                "ai_production_assistant.selected_model",
+                this.state.selectedModel,
+            ]);
+            this.notification.add("Modelo actualizado", { type: "success" });
+        } catch (e) {
+            this.notification.add("No se pudo guardar el modelo", { type: "warning" });
         }
     }
 }

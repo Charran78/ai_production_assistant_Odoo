@@ -3,6 +3,8 @@
 import { Component, useState, onWillStart, onMounted, useRef } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 import { registry } from "@web/core/registry";
+import { session } from "@web/session";
+import { user } from "@web/core/user";
 import { AiChat } from "../chat/ai_chat";
 
 export class AiAvatar extends Component {
@@ -13,6 +15,7 @@ export class AiAvatar extends Component {
       setup() {
             this.orm = useService("orm");
             this.action = useService("action");
+            this.bus = useService("bus_service");
 
             this.state = useState({
                   isOpen: false,
@@ -35,8 +38,29 @@ export class AiAvatar extends Component {
                   await this.refreshNotifications();
             });
 
-            // Polling simple para notificaciones (cada 60s)
             setInterval(() => this.refreshNotifications(), 60000);
+
+            onMounted(() => {
+                  let uid = Array.isArray(session.user_id) ? session.user_id[0] : user.userId;
+                  if (uid) {
+                      const channel = `ai.notification.${uid}`;
+                      this.bus.addChannel(channel);
+                  }
+                  this.bus.subscribe("ai.notification", (payload) => {
+                        const item = {
+                              id: payload.id || Date.now(),
+                              title: payload.title,
+                              body: payload.body,
+                              type: payload.type || "info",
+                              action_payload: payload.action_payload || null,
+                              is_read: false,
+                        };
+                        this.notifications.unshift(item);
+                        if (this.notifications.length > 50) {
+                              this.notifications.pop();
+                        }
+                  });
+            });
       }
 
       toggleWindow() {

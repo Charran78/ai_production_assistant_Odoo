@@ -50,9 +50,12 @@ class AiWatchdog(models.Model):
         self.ensure_one()
         agent = AgentCore(self.env)
 
-        # Lógica específica por tipo
         if self.check_type == "date_delay":
             self._check_delays(agent)
+        elif self.check_type == "stock_level":
+            self._check_stock(agent)
+        elif self.check_type == "custom_domain":
+            self._check_custom(agent)
 
         self.last_check = fields.Datetime.now()
 
@@ -67,18 +70,20 @@ class AiWatchdog(models.Model):
             except Exception as e:
                 _logger.warning("Dominio inválido en watchdog %s: %s", self.name, str(e))
 
-        # Buscar retrasos
         records = self.env[model_name].search(domain)
         delayed = []
         today = fields.Date.today()
+        date_fields = ["date_deadline", "commitment_date", "date_planned"]
 
         for rec in records:
-            if (
-                "date_deadline" in rec
-                and rec.date_deadline
-                and rec.date_deadline < today
-            ):
-                delayed.append(rec)
+            for field in date_fields:
+                if field in rec._fields and rec[field]:
+                    date_value = rec[field]
+                    if hasattr(date_value, "date"):
+                        date_value = date_value.date()
+                    if date_value < today:
+                        delayed.append(rec)
+                    break
 
         if delayed:
             count = len(delayed)
@@ -86,7 +91,43 @@ class AiWatchdog(models.Model):
             title = f"⚠️ {count} Retrasos en {self.name}"
             body = f"<p>Se han detectado {count} registros retrasados: <b>{names}</b>...</p>"
 
-            # Notificar a todos los usuarios internos (o mejora: configurar a quién)
+            users = self.env["res.users"].search([("share", "=", False)])
+            action_payload = self._action_payload_for_model(model_name)
+            for user in users:
+                agent.create_notification(
+                    user.id,
+                    title,
+                    body,
+                    notification_type="warning",
+                    action_payload=action_payload,
+                )
+
+    def _check_stock(self, agent):
+        model_name = self.model_id.model
+        domain = []
+        if self.domain_filter:
+            try:
+                domain += safe_eval(self.domain_filter)
+            except Exception as e:
+                _logger.warning("Dominio inválido en watchdog %s: %s", self.name, str(e))
+
+        records = self.env[model_name].search(domain)
+        low_stock = []
+        threshold = self.warning_threshold or 0
+
+        for rec in records:
+            qty_field = "qty_available" if "qty_available" in rec._fields else None
+            if not qty_field and "quantity" in rec._fields:
+                qty_field = "quantity"
+            if qty_field:
+                if rec[qty_field] <= threshold:
+                    low_stock.append(rec)
+
+        if low_stock:
+            count = len(low_stock)
+            names = ", ".join([r.display_name for r in low_stock[:3]])
+            title = f"⚠️ Stock crítico en {self.name}"
+            body = f"<p>{count} registros con stock ≤ {threshold}: <b>{names}</b>...</p>"
             users = self.env["res.users"].search([("share", "=", False)])
             for user in users:
                 agent.create_notification(
@@ -94,8 +135,40 @@ class AiWatchdog(models.Model):
                     title,
                     body,
                     notification_type="warning",
-                    action_payload={
-                        "tool": "search_mrp_orders",
-                        "params": {"state": "confirmed"},
-                    },  # Ejemplo genérico
+                    action_payload={"tool": "search_products", "params": {"name": ""}},
                 )
+
+    def _check_custom(self, agent):
+        model_name = self.model_id.model
+        domain = []
+        if self.domain_filter:
+            try:
+                domain += safe_eval(self.domain_filter)
+            except Exception as e:
+                _logger.warning("Dominio inválido en watchdog %s: %s", self.name, str(e))
+
+        records = self.env[model_name].search(domain)
+        if records:
+            count = len(records)
+            names = ", ".join([r.display_name for r in records[:3]])
+            title = f"⚠️ Alerta en {self.name}"
+            body = f"<p>{count} registros cumplen el dominio: <b>{names}</b>...</p>"
+            users = self.env["res.users"].search([("share", "=", False)])
+            for user in users:
+                agent.create_notification(
+                    user.id,
+                    title,
+                    body,
+                    notification_type="warning",
+                )
+
+    def _action_payload_for_model(self, model_name):
+        if model_name == "mrp.production":
+            return {"tool": "search_mrp_orders", "params": {"state": "delayed"}}
+        if model_name == "sale.order":
+            return {"tool": "search_sale_orders", "params": {"state": "sale"}}
+        if model_name == "purchase.order":
+            return {"tool": "search_purchase_orders", "params": {"state": "purchase"}}
+        if model_name == "product.product":
+            return {"tool": "search_products", "params": {"name": ""}}
+        return None

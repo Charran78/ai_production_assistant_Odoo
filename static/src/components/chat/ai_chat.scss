@@ -86,6 +86,20 @@
     color: var(--o-chat-header-text);
 }
 
+.o_ai_chat_settings {
+    background-color: var(--o-chat-settings-bg);
+    color: var(--o-chat-header-text);
+}
+
+.o_ai_chat_dark .o_ai_chat_settings .form-label,
+.o_ai_chat_dark .o_ai_chat_settings .small {
+    color: var(--o-chat-header-text) !important;
+}
+
+.o_ai_chat_dark .form-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23e0e0e0' d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+}
+
 .o_ai_chat_bubble_assistant {
     background-color: var(--o-chat-bubble-bg) !important;
     color: var(--o-chat-bubble-text) !important;

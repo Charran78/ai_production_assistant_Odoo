@@ -19,10 +19,12 @@
 
     <!-- Historial Clásico -->
     <menuitem id="menu_ai_assistant_sessions" name="Historial" parent="menu_ai_assistant_root" action="action_ai_assistant_session" sequence="20"/>
+    <menuitem id="menu_ai_notifications" name="Notificaciones" parent="menu_ai_assistant_root" action="action_ai_notification" sequence="30"/>
 
     <menuitem id="menu_ai_assistant_config" name="Configuración" parent="menu_ai_assistant_root" sequence="100"/>
     <menuitem id="menu_ai_ollama_models" name="Modelos IA" parent="menu_ai_assistant_config" action="action_ai_ollama_model" sequence="10"/>
     <menuitem id="menu_ai_ollama_config" name="Configuración Ollama" parent="menu_ai_assistant_config" action="action_ai_ollama_config" sequence="12"/>
     <menuitem id="menu_ai_vector_config" name="Conector Qdrant" parent="menu_ai_assistant_config" action="action_ai_vector_config" sequence="15"/>
+    <menuitem id="menu_ai_watchdog" name="Watchdogs" parent="menu_ai_assistant_config" action="action_ai_watchdog" sequence="18"/>
     <menuitem id="menu_sync_ollama_models" name="Sincronizar Modelos" parent="menu_ai_assistant_config" action="action_sync_ollama_models" sequence="20"/>
 </odoo>

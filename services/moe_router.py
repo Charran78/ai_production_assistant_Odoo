@@ -141,6 +141,8 @@ REGLA IMPORTANTE: Usa SIEMPRE "params" y NUNCA "parameters" en el JSON de las he
                 "'cost': float, 'type': str}"
             ),
             "search_mrp_orders": "Busca órdenes de fabricación. params: {'state': str}",
+            "search_docs": "Busca en documentación. params: {'query': str}",
+            "search_mail": "Busca en correo. params: {'query': str}",
             "message": "Responde al usuario.",
         }
         prompt = """Eres el ASISTENTE GENERAL de Operaciones.

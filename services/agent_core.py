@@ -11,6 +11,8 @@ from datetime import datetime
 
 from .ollama_service import OllamaService
 from .moe_router import MoERouter
+from .sales_purchase_tools import execute_sale_orders, execute_purchase_orders
+from .rag_service import VectorRagService
 
 _logger = logging.getLogger(__name__)
 
@@ -32,6 +34,22 @@ TOOLS = {
         "description": "Buscar órdenes de fabricación",
         "params": ["state"],  # draft, confirmed, progress, done, cancel
     },
+    "search_sale_orders": {
+        "description": "Buscar pedidos de venta",
+        "params": ["state", "date_from", "date_to", "partner_name"],
+    },
+    "search_purchase_orders": {
+        "description": "Buscar pedidos de compra",
+        "params": ["state", "date_from", "date_to", "partner_name"],
+    },
+    "search_docs": {
+        "description": "Buscar en documentación",
+        "params": ["query"],
+    },
+    "search_mail": {
+        "description": "Buscar en correo",
+        "params": ["query"],
+    },
     "create_mrp_order": {
         "description": "Crear orden de fabricación",
         "params": ["product_id", "quantity"],
@@ -46,6 +64,10 @@ TOOLS = {
     "adjust_stock": {
         "description": "Ajustar inventario de un producto",
         "params": ["product_id", "quantity"],
+    },
+    "send_mail": {
+        "description": "Enviar un correo electrónico",
+        "params": ["to", "subject", "body"],
     },
     "message": {"description": "Responder al usuario con texto", "params": ["content"]},
 }
@@ -63,11 +85,16 @@ HERRAMIENTAS DISPONIBLES:
 - create_product: crear producto (params: name, price, cost). Ejemplo: {\"tool\": \"create_product\", \"params\": {\"name\": \"X\", \"price\": 10, \"cost\": 5}}
 - create_bom: crear lista de materiales (params: product_id, components). Components es lista de dicts {\"product_id\": ID, \"qty\": N}.
 - search_mrp_orders: buscar órdenes de fabricación (params: state). Ejemplo: {\"tool\": \"search_mrp_orders\", \"params\": {\"state\": \"delayed\"}}
+- search_sale_orders: buscar pedidos de venta (params: state, date_from, date_to, partner_name).
+- search_purchase_orders: buscar pedidos de compra (params: state, date_from, date_to, partner_name).
+- search_docs: buscar en documentación (params: query).
+- search_mail: buscar en correo (params: query).
+- send_mail: enviar correo (params: to, subject, body).
 - message: responder texto normal.
 
 REGLAS IMPORTANTES:
 1. Si te preguntan la hora, responde con la fecha y hora indicadas arriba.
-2. Para consultas de búsqueda (search_products, search_mrp_orders), responde SOLO con el JSON de la herramienta.
+2. Para consultas de búsqueda (search_products, search_mrp_orders, search_sale_orders, search_purchase_orders, search_docs, search_mail), responde SOLO con el JSON de la herramienta.
 3. Para acciones de creación, espera confirmación del usuario.
 4. Si faltan datos para una herramienta (ej: precio), PREGUNTA al usuario antes de generar el JSON. NO inventes datos.
 5. Si el usuario pide crear algo complejo (BoM), primero busca si existen los componentes.
@@ -163,6 +190,31 @@ def parse_create_product_prompt(prompt):
     }
 
 
+def parse_inventory_prompt(prompt):
+    if not prompt:
+        return None
+    text = prompt.strip()
+    lower = text.lower()
+    keywords = ["inventario", "stock", "existencias", "cantidad", "cuantos"]
+    if not any(k in lower for k in keywords):
+        return None
+
+    match = re.search(
+        r"(?:inventario|stock|existencias|cantidad|cuantos)\s*(?:de|del|de la|de los|de las)?\s*([^,;\n]+)",
+        lower,
+        flags=re.IGNORECASE,
+    )
+    name = None
+    if match:
+        name = match.group(1).strip(" .,-;:")
+        if name and any(w in name for w in ["tenemos", "hay", "existen", "total"]):
+            name = None
+
+    return {"tool": "search_products", "params": {"name": name or ""}}
+
+
+
+
 class AgentCore:
     """Núcleo del agente IA - una llamada, una respuesta."""
 
@@ -177,6 +229,38 @@ class AgentCore:
 
     def execute_tool(self, tool, params):
         return self._execute_tool(tool, params)
+
+    def create_notification(
+        self,
+        user_id,
+        title,
+        body,
+        *,
+        notification_type="info",
+        action_payload=None,
+    ):
+        vals = {
+            "name": title,
+            "body": body,
+            "notification_type": notification_type,
+            "user_id": user_id,
+        }
+        if action_payload:
+            vals["action_payload"] = json.dumps(action_payload)
+        rec = self.env["ai.notification"].create(vals)
+        try:
+            payload = {
+                "id": rec.id,
+                "title": title,
+                "body": body,
+                "type": notification_type,
+                "action_payload": action_payload,
+            }
+            channel = f"ai.notification.{user_id}"
+            self.env["bus.bus"]._sendone(channel, "ai.notification", payload)
+        except Exception:
+            pass
+        return rec
 
     def _parse_response(self, raw_response):
         """Intenta extraer JSON de la respuesta del modelo."""
@@ -367,7 +451,7 @@ HERRAMIENTAS DISPONIBLES:
 
 REGLAS GLOBALES - OBLIGATORIAS:
 1. Si te preguntan la hora, responde con la fecha y hora indicadas arriba.
-2. Para consultas de búsqueda (search_products, search_mrp_orders), responde SOLO con el JSON de la herramienta.
+2. Para consultas de búsqueda (search_products, search_mrp_orders, search_sale_orders, search_purchase_orders, search_docs, search_mail), responde SOLO con el JSON de la herramienta.
 3. Para acciones de creación, espera confirmación del usuario.
 4. Si faltan datos para una herramienta (ej: precio), PREGUNTA al usuario antes de generar el JSON. NO inventes datos.
 5. Usa el ID numérico de los productos (ej: [12]) para referirte a ellos en las herramientas.
@@ -433,7 +517,14 @@ REGLA CRÍTICA - INCUMPLIMIENTO CAUSA ERROR:
             return {"response": content}
 
         # ACCIONES DE CONSULTA: Marcar como seguras para auto-ejecución
-        safe_tools = ["search_products", "search_mrp_orders"]
+        safe_tools = [
+            "search_products",
+            "search_mrp_orders",
+            "search_sale_orders",
+            "search_purchase_orders",
+            "search_docs",
+            "search_mail",
+        ]
         if tool in safe_tools:
             # Devolver la acción para que el controlador la ejecute automáticamente
             return {"response": f"[{tool}] Preparando consulta...", "action": action}
@@ -449,27 +540,86 @@ REGLA CRÍTICA - INCUMPLIMIENTO CAUSA ERROR:
 
         if tool == "search_products":
             name = params.get("name", "")
-            domain = [("name", "ilike", name)] if name else []
-            products = self.env["product.product"].search_read(
-                domain,
-                ["id", "name", "qty_available", "list_price", "standard_price"],
-                limit=15,
-            )
-            if products:
-                lines = [f"📦 Encontré {len(products)} productos:"]
+            if not name:
+                products = self.env["product.product"].search(
+                    [("active", "=", True)]
+                )
+                total_products = len(products)
+                quant_groups = self.env["stock.quant"].read_group(
+                    [("location_id.usage", "=", "internal")],
+                    ["product_id", "quantity:sum"],
+                    ["product_id"],
+                )
+                qty_map = {
+                    g["product_id"][0]: g.get("quantity", 0)
+                    for g in quant_groups
+                    if g.get("product_id")
+                }
+                with_stock = 0
+                critical = 0
                 for p in products:
-                    stock_info = (
-                        f"Stock: {p['qty_available']}"
-                        if p["qty_available"]
-                        else "Sin stock"
-                    )
+                    qty = qty_map.get(p.id, 0)
+                    if qty > 0:
+                        with_stock += 1
+                    if qty <= 0:
+                        critical += 1
+
+                lines = [
+                    "📦 Productos activos: %s" % total_products,
+                    "✅ Con stock: %s" % with_stock,
+                    "⚠️ Stock crítico: %s" % critical,
+                    "Inventario completo:",
+                ]
+                for p in products:
+                    qty = qty_map.get(p.id, 0)
+                    stock_info = "Stock: %s" % qty if qty else "Sin stock"
                     lines.append(
-                        f"• [{p['id']}] {p['name']} - {stock_info} - Precio: {p['list_price']}€"
+                        "• [%s] %s - %s - Precio: %s€"
+                        % (p.id, p.name, stock_info, p.list_price)
                     )
                 return {"response": "\n".join(lines)}
-            if name:
-                return {"response": f"No encontré productos con '{name}'"}
-            return {"response": "No hay productos en el sistema. ¿Quieres crear uno?"}
+
+            products = self.env["product.product"].search(
+                [("name", "ilike", name)], limit=15
+            )
+            if not products:
+                return {"response": "No encontré productos con '%s'" % name}
+
+            product_ids = products.ids
+            quant_groups = self.env["stock.quant"].read_group(
+                [
+                    ("location_id.usage", "=", "internal"),
+                    ("product_id", "in", product_ids),
+                ],
+                ["product_id", "quantity:sum"],
+                ["product_id"],
+            )
+            qty_map = {g["product_id"][0]: g.get("quantity", 0) for g in quant_groups}
+            lines = ["📦 Encontré %s productos:" % len(products)]
+            for p in products:
+                qty = qty_map.get(p.id, 0)
+                stock_info = "Stock: %s" % qty if qty else "Sin stock"
+                lines.append(
+                    "• [%s] %s - %s - Precio: %s€"
+                    % (p.id, p.name, stock_info, p.list_price)
+                )
+            return {"response": "\n".join(lines)}
+
+        if tool == "search_sale_orders":
+            return {"response": execute_sale_orders(self.env, params)}
+
+        if tool == "search_purchase_orders":
+            return {"response": execute_purchase_orders(self.env, params)}
+
+        if tool == "search_docs":
+            query = params.get("query", "")
+            service = VectorRagService(self.env)
+            return {"response": service.search(query, source="docs", limit=5)}
+
+        if tool == "search_mail":
+            query = params.get("query", "")
+            service = VectorRagService(self.env)
+            return {"response": service.search(query, source="mail", limit=5)}
 
         if tool == "create_product":
             name = params.get("name")
@@ -670,6 +820,9 @@ REGLA CRÍTICA - INCUMPLIMIENTO CAUSA ERROR:
                 product = self.env["product.product"].browse(int(product_id))
                 if not product.exists():
                     return {"response": f"❌ Producto {product_id} no existe"}
+                
+                if product.type != 'product':
+                    return {"response": f"❌ El producto '{product.name}' no es almacenable (Type: {product.type})"}
 
                 # Buscar ubicación principal
                 location = self.env["stock.location"].search(
@@ -688,23 +841,51 @@ REGLA CRÍTICA - INCUMPLIMIENTO CAUSA ERROR:
                     limit=1,
                 )
 
+                try:
+                    qty_float = float(quantity)
+                except (ValueError, TypeError):
+                    return {"response": f"❌ Cantidad '{quantity}' no es un número válido"}
+
                 if quant:
-                    quant.write({"inventory_quantity": float(quantity)})
+                    quant.write({"inventory_quantity": qty_float})
                     quant.action_apply_inventory()
                 else:
                     self.env["stock.quant"].create(
                         {
                             "product_id": product.id,
                             "location_id": location.id,
-                            "inventory_quantity": float(quantity),
+                            "inventory_quantity": qty_float,
                         }
                     ).action_apply_inventory()
 
                 return {
-                    "response": f"✅ Stock ajustado:\n• Producto: {product.name}\n• Nueva cantidad: {quantity}"
+                    "response": f"✅ Stock ajustado:\n• Producto: {product.name}\n• Nueva cantidad: {qty_float}"
                 }
             except Exception as e:
                 return {"response": f"❌ Error ajustando stock: {str(e)}"}
+
+        elif tool == "send_mail":
+            to = params.get("to") or params.get("recipients") or params.get("email")
+            subject = params.get("subject") or "(sin asunto)"
+            body = params.get("body") or params.get("content")
+            
+            if not to or not body:
+                return {"response": "❌ Necesito destinatario y cuerpo del mensaje"}
+            
+            # Validación básica de email
+            if not re.match(r"[^@]+@[^@]+\.[^@]+", str(to)):
+                return {"response": f"❌ Dirección de correo '{to}' no válida"}
+
+            try:
+                mail = self.env["mail.mail"].create({
+                    "subject": str(subject),
+                    "body_html": f"<p>{str(body)}</p>",
+                    "email_to": str(to),
+                })
+                mail.sudo().send()
+                return {"response": f"✅ Correo enviado a {to}"}
+            except Exception as e:
+                return {"response": f"❌ Error enviando correo: {str(e)}"}
 
         return {"response": f"Herramienta '{tool}' no implementada"}
 

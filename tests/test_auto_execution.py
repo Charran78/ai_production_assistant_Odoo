@@ -8,7 +8,12 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from services.agent_core import AgentCore, parse_create_product_prompt
+from services.agent_core import AgentCore, parse_create_product_prompt, parse_inventory_prompt
+from services.sales_purchase_tools import (
+    parse_purchase_orders_prompt,
+    parse_sale_orders_prompt,
+)
+from services.rag_service import parse_docs_prompt, parse_mail_prompt
 import logging
 
 # Configurar logging para ver lo que está pasando
@@ -155,6 +160,51 @@ def test_auto_execution():
     print("\n🧩 Test 7: Parseo prompt con nombre entre comillas")
     prompt = 'crea producto: nombre ? "bollo", precio 2.5, costo 1, tipo alimento'
     parsed_action = parse_create_product_prompt(prompt)
+    print(f"Resultado: {parsed_action}")
+
+    print("\n🧩 Test 8: Parseo prompt inventario")
+    prompt = "haz inventario"
+    parsed_action = parse_inventory_prompt(prompt)
+    print(f"Resultado: {parsed_action}")
+
+    print("\n🧩 Test 9: Parseo prompt ventas con fechas")
+    prompt = "ventas este mes"
+    parsed_action = parse_sale_orders_prompt(prompt)
+    print(f"Resultado: {parsed_action}")
+
+    print("\n🧩 Test 10: Parseo prompt compras últimos 7 días")
+    prompt = "compras últimos 7 días"
+    parsed_action = parse_purchase_orders_prompt(prompt)
+    print(f"Resultado: {parsed_action}")
+
+    print("\n🧩 Test 11: Parseo prompt ventas por cliente")
+    prompt = "ventas cliente Acme este mes"
+    parsed_action = parse_sale_orders_prompt(prompt)
+    print(f"Resultado: {parsed_action}")
+
+    print("\n🧩 Test 12: Parseo prompt compras por proveedor")
+    prompt = "compras proveedor Global Supplies"
+    parsed_action = parse_purchase_orders_prompt(prompt)
+    print(f"Resultado: {parsed_action}")
+
+    print("\n🧩 Test 13: Parseo prompt ventas pendientes")
+    prompt = "ventas pendientes"
+    parsed_action = parse_sale_orders_prompt(prompt)
+    print(f"Resultado: {parsed_action}")
+
+    print("\n🧩 Test 14: Parseo prompt compras aprobadas")
+    prompt = "compras aprobadas"
+    parsed_action = parse_purchase_orders_prompt(prompt)
+    print(f"Resultado: {parsed_action}")
+
+    print("\n🧩 Test 15: Parseo prompt docs")
+    prompt = "buscar en documentación el procedimiento de calibración"
+    parsed_action = parse_docs_prompt(prompt)
+    print(f"Resultado: {parsed_action}")
+
+    print("\n🧩 Test 16: Parseo prompt correo")
+    prompt = "revisar el correo urgente"
+    parsed_action = parse_mail_prompt(prompt)
     print(f"Resultado: {parsed_action}")
 
     print("\n✅ Test completado")

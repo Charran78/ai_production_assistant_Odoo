@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_ai_watchdog_list" model="ir.ui.view">
+        <field name="name">ai.watchdog.list</field>
+        <field name="model">ai.watchdog</field>
+        <field name="arch" type="xml">
+            <list string="Watchdogs IA">
+                <field name="name"/>
+                <field name="model_id"/>
+                <field name="check_type"/>
+                <field name="warning_threshold"/>
+                <field name="active"/>
+                <field name="last_check"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ai_watchdog_form" model="ir.ui.view">
+        <field name="name">ai.watchdog.form</field>
+        <field name="model">ai.watchdog</field>
+        <field name="arch" type="xml">
+            <form string="Watchdog IA">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="active"/>
+                    </group>
+                    <group>
+                        <field name="model_id"/>
+                        <field name="check_type"/>
+                        <field name="warning_threshold"/>
+                    </group>
+                    <group>
+                        <field name="domain_filter"/>
+                        <field name="last_check" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ai_watchdog" model="ir.actions.act_window">
+        <field name="name">Watchdogs</field>
+        <field name="res_model">ai.watchdog</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

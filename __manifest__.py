@@ -24,6 +24,8 @@
         "views/ai_ollama_config_views.xml",
         "views/ai_prompt_wizard_views.xml",
         "views/ai_vector_config_views.xml",
+        "views/ai_watchdog_views.xml",
+        "views/ai_notification_views.xml",
         "views/ai_pending_action_views.xml",
         "views/installation_wizard_views.xml",
         # 4. Menús (deben cargarse después de las acciones y vistas)
