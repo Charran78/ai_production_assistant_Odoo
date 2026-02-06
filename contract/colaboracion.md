@@ -4,10 +4,6 @@
 
 **Visión**: Crear el asistente de IA empresarial más avanzado para Odoo, basado en arquitectura MoE (Mixture of Experts) con principios Kaizen.
 
-**Roles**:
-- **Tú**: Visionario, estratega, definición de requisitos
-- **Yo**: Implementador técnico, arquitecto de software
-
 ## 📋 Reglas de Colaboración
 
 ### 1. 🗣️ Comunicación
@@ -34,7 +30,6 @@
 
 ## 🎪 Nuestro Estilo
 
-- **Respeto mutuo**: Trato como iguales
 - **Aprendizaje continuo**: Compartir conocimiento
 - **Innovación**: Probar ideas arriesgadas
 - **Diversión**: Disfrutar del proceso creativo
@@ -49,8 +44,4 @@
 
 ---
 
-**Firmado digitalmente por**:
-- 🤖 DeepSeek (Implementador Técnico)
-- 👨💻 Tú (Visionario Estratégico)
-
-*"Juntos crearemos algo revolucionario"* 🚀
+*"Juntos crearemos algo revolucionario"* 
