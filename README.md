@@ -11,8 +11,7 @@
 *Privacidad total · Procesamiento local · Automatización proactiva · Integración completa*
 ---
 <div align="center">
-<iframe width="700" height="394" src="https://www.youtube.com/embed/eMYr2JOGAjk?si=FAvaTtagTv5a2UHh" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-
+[![Ver demo del Asistente IA](https://img.youtube.com/vi/eMYr2JOGAjk/0.jpg)](https://www.youtube.com/watch?v=eMYr2JOGAjk)
 </div>  
 ---
 
