@@ -2,7 +2,7 @@
 
 ![Odoo 19](https://img.shields.io/badge/Odoo-19.0-%23A3478E)
 ![Python](https://img.shields.io/badge/Python-3.13-blue)
-![License](https://img.shields.io/badge/License-LGPL--3.0-green)
+![License](https://img.shields.io/badge/License-AGPL--3.0-green)
 ![Ollama](https://img.shields.io/badge/Ollama-Integration-FF6B35)
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 ![Architecture](https://img.shields.io/badge/Architecture-MoE_Kaizen-orange)
