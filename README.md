@@ -11,8 +11,8 @@
 *Privacidad total · Procesamiento local · Automatización proactiva · Integración completa*
 ---
 <div align="center">
-  <a href="https://www.youtube.com">
-    <img src="https://img.youtube.com" alt="Video Demo" width="700">
+  <a href="https://www.youtube.com/watch?v=eMYr2JOGAjk">
+    <img src="https://img.youtube.com/vi/eMYr2JOGAjk/0.jpg" alt="Video Demo" width="700">
   </a>
 </div>
 
