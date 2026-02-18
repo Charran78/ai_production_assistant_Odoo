@@ -42,7 +42,6 @@ No es solo un "asistente de chat" - es un **Sistema de Inteligencia Operativa Em
 - [📊 Dashboard y Vistas](#-dashboard-y-vistas)
 - [📈 Roadmap](#-roadmap)
 - [📄 Licencia](#-licencia)
-- [👨‍💻 Equipo](#-equipo)
 
 ---
 
@@ -123,6 +122,8 @@ No es solo un "asistente de chat" - es un **Sistema de Inteligencia Operativa Em
 - **Control granular de permisos** por usuario y grupo
 - **Auditoría completa** de todas las interacciones
 
+
+[🔝 Volver al Índice](#-índice)
 ---
 
 ## 🛠️ Requisitos del Sistema
@@ -169,6 +170,8 @@ services:
     restart: unless-stopped
 ```
 
+
+[🔝 Volver al Índice](#-índice)
 ---
 
 ## 🏭 **Uso del Sistema**
@@ -278,6 +281,8 @@ Estas tareas se crean en [ir_cron.xml](file:///h:/users/tu_usuario/Desktop/odoo-
 - Administradores: Configuración completa
 ```
 
+
+[🔝 Volver al Índice](#-índice)
 ---
 
 ## 🤖 Uso del Sistema
@@ -363,6 +368,8 @@ class MasterRouter:
         # Retorno de solución integral multisistema
 ```
 
+
+[🔝 Volver al Índice](#-índice)
 ---
 
 ## 🏗️ Arquitectura Técnica
@@ -422,6 +429,8 @@ class AiPendingAction(models.Model):
     execution_result = fields.Text('Resultado Ejecución')
 ```
 
+
+[🔝 Volver al Índice](#-índice)
 ---
 
 ## 🔧 Estructura del Proyecto
@@ -467,6 +476,8 @@ ai_production_assistant/
 
 ```
 
+
+[🔝 Volver al Índice](#-índice)
 ---
 
 ## 📊 Dashboard y Vistas
@@ -535,6 +546,11 @@ cp -r ai_production_assistant /ruta/a/odoo/addons/
 service odoo restart
 ```
 
+
+[🔝 Volver al Índice](#-índice)
+---
+
+
 ### Configuración Inicial
 
 1. 🎯 **Configurar modelos Ollama** en Configuración → IA → Modelos
@@ -572,6 +588,11 @@ service odoo restart
 - Fase 3: code review, documentación viva, gestión de dependencias
 - Fase 4: auditoría de procesos, métricas de calidad, plan de pruebas formal
 
+
+[🔝 Volver al Índice](#-índice)
+---
+
+
 ## 📈 Roadmap
 
 ### 🎯 Fase 1: MVP Crítico (Q1 2026)
@@ -598,6 +619,11 @@ service odoo restart
 - 🌐 Integración cross-module avanzada
 - 🎯 Personalización por usuario/rol
 
+
+[🔝 Volver al Índice](#-índice)
+---
+
+
 ## 👨‍💻 Equipo
 
 **🤝 Filosofía de Colaboración**:
@@ -622,6 +648,8 @@ Para uso en software propietario sin las restricciones de la AGPL, contacte al a
 - ✅ Modificar el código: Sí
 - ❌ Garantía y Soporte: No incluido
 ```
+
+[🔝 Volver al Índice](#-índice)
 ---
 
 **¿Listo para revolucionar tu operativa empresarial subiendo una marcha en Odoo?** 🚀
@@ -650,13 +678,15 @@ Para uso en software propietario sin las restricciones de la AGPL, contacte al a
 - **Qdrant** por la excelente solución de vectores
 - Comunidad de código abierto
 
+
+[🔝 Volver al Índice](#-índice)
 ---
 
 ### ⭐ Si este proyecto te es útil, considera darle una estrella en GitHub
 
 ---
 
-*Última actualización: Febrero 2026*  
+*Última actualización: 18 Febrero 2026*  
 *Versión del módulo: 1.0.0*  
 *Compatibilidad: Odoo 19.0*
 
