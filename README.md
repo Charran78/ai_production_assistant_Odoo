@@ -49,6 +49,8 @@ No es solo un "asistente de chat" - es un **Sistema de Inteligencia Operativa Em
 
 ## 🚀 Características Revolucionarias
 
+## 🗼 **Arquitectura MoE Kaizen**
+
 ### 🧠 **Arquitectura MoE (Mixture of Experts)**
 
 - **Expertos especializados** por módulo de Odoo:
@@ -170,6 +172,8 @@ services:
 
 ---
 
+## 🏭 **Uso del Sistema**
+
 ## 📦 Instalación
 
 ### 1. 🔄 Configuración de Ollama
@@ -264,7 +268,7 @@ Dimensiones: 384
 - **AI Assistant: Watchdog Proactivo**: 5 min
 - **AI Assistant: Indexar RAG**: 15 min
 
-Estas tareas se crean en [ir_cron.xml](file:///h:/users/xpite/Desktop/odoo-19.0/custom_addons/ai_production_assistant/data/ir_cron.xml) y pueden ajustarse desde Configuración técnica de Odoo.
+Estas tareas se crean en [ir_cron.xml](file:///h:/users/tu_usuario/Desktop/odoo-19.0/custom_addons/ai_production_assistant/data/ir_cron.xml) y pueden ajustarse desde Configuración técnica de Odoo.
 
 ### 4. 👥 Configuración de Permisos
 
@@ -541,7 +545,7 @@ service odoo restart
 
 ### Pruebas rápidas
 
-- Verificar auto-ejecución y parseos: [tests/test_auto_execution.py](file:///h:/users/xpite/Desktop/odoo-19.0/custom_addons/ai_production_assistant/tests/test_auto_execution.py)
+- Verificar auto-ejecución y parseos: [tests/test_auto_execution.py](file:///h:/users/tu_usuario/Desktop/odoo-19.0/custom_addons/ai_production_assistant/tests/test_auto_execution.py)
 - Probar conexión Qdrant desde **Conector Qdrant**
 - Crear un **Watchdog** de prueba (stock ≤ 0) y observar la notificación en el systray
 
@@ -569,14 +573,14 @@ service odoo restart
 - Fase 3: code review, documentación viva, gestión de dependencias
 - Fase 4: auditoría de procesos, métricas de calidad, plan de pruebas formal
 
-## 📈 Roadmap 2026
+## 📈 Roadmap
 
 ### 🎯 Fase 1: MVP Crítico (Q1 2026)
 
 - ✅ Sistema base de chat inteligente
-- ✅ ManufacturingExpert completo
-- ✅ SalesExpert básico  
-- ✅ Sistema de alertas proactivas
+- 🔁 ManufacturingExpert completo
+- 🔁 SalesExpert básico  
+- 🔁 Sistema de alertas proactivas
 - ✅ Integración con Ollama estable
 
 ### 🚀 Fase 2: Expansión Multimódulo (Q2 2026)
