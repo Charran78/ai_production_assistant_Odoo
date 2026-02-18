@@ -10,10 +10,13 @@
 **Sistema revolucionario de inteligencia operativa basado en Mixture of Experts (MoE) y principios Kaizen**  
 *Privacidad total · Procesamiento local · Automatización proactiva · Integración completa*
 ---
+
 <div align="center">
-  <a href="https://www.youtube.com/watch?v=eMYr2JOGAjk">
-    <img src="https://img.youtube.com/vi/eMYr2JOGAjk/0.jpg" alt="Video Demo" width="700">
+  <h3>🎥 Demo del Asistente IA</h3>
+  <a href="https://www.youtube.com/watch?v=eMYr2JOGAjk" target="_blank">
+    <img src="https://img.youtube.com/vi/eMYr2JOGAjk/0.jpg" alt="Video Demo" width="560">
   </a>
+  <h3>🎥 Haz Click para ver el Video</h3>
 </div>
 
 ## 🎯 Visión Transformadora
