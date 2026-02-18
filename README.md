@@ -599,17 +599,19 @@ service odoo restart
 
 ## 📄 Licencia
 
-Este módulo está licenciado bajo **LGPL-3.0** - ver el archivo [LICENSE](LICENSE) para más detalles.
+Este módulo está licenciado bajo **AGPL-3.0** - ver el archivo [LICENSE](LICENSE) para más detalles.
+Para uso en software propietario sin las restricciones de la AGPL, contacte al autor para una licencia comercial
 
 **Resumen de permisos:**
 
-- ❌ Usar comercialmente
-- ❌ Modificar y distribuir
-- ✅ Usar en software privativo
-- ❌ Patentar modificaciones
-- ❌ No incluye garantía
-- ❌ No asume responsabilidad
-
+```markdown
+| - Permisos y Obligaciones	            | AGPL-3.0       |
+| - Uso en software de código abierto	  | ✅ Sí	         |
+| - Uso en software propietario/cerrado	| ❌ No	         |
+| - Atribución y Mérito	                | ✅ Obligatorio | 	
+| - Modificar el código	                | ✅ Sí	         | 
+| - Garantía y Soporte	                | ❌ No incluido |
+```
 ---
 
 **¿Listo para revolucionar tu operativa empresarial?** 🚀
