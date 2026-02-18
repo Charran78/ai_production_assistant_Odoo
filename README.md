@@ -40,7 +40,6 @@ No es solo un "asistente de chat" - es un **Sistema de Inteligencia Operativa Em
 - [🤖 Uso del Sistema](#-uso-del-sistema)
 - [🔧 Estructura del Proyecto](#-estructura-del-proyecto)
 - [📊 Dashboard y Vistas](#-dashboard-y-vistas)
-- [⚠️ Solución de Problemas](#-solución-de-problemas)
 - [📈 Roadmap](#-roadmap)
 - [📄 Licencia](#-licencia)
 - [👨‍💻 Equipo](#-equipo)
@@ -126,9 +125,9 @@ No es solo un "asistente de chat" - es un **Sistema de Inteligencia Operativa Em
 
 ---
 
-## 🛠️ Requisitos
+## 🛠️ Requisitos del Sistema
 
-### 📋 Requisitos Mínimos del Sistema
+### 📋 Requisitos Mínimos 
 
 | Componente  | Versión | Notas                         |
 |------------ |---------|-------------------------------|
