@@ -621,10 +621,10 @@ Para uso en software propietario sin las restricciones de la AGPL, contacte al a
 ```
 ---
 
-**¿Listo para revolucionar tu operativa empresarial?** 🚀
+**¿Listo para revolucionar tu operativa empresarial subiendo una marcha en Odoo?** 🚀
 
 **Pedro Mencías**  
-*Desarrollador Odoo & Especialista en IA*
+*Desarrollador & Soluciones en IA*
 
 [![GitHub](https://img.shields.io/badge/GitHub-@Charran78-181717?logo=github)](https://github.com/Charran78)  
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-MiPerfil-blue?logo=linkedin)](https://www.linkedin.com/in/pedro-menc%C3%ADas-68223336b/)  
