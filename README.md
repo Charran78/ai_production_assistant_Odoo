@@ -126,9 +126,9 @@ No es solo un "asistente de chat" - es un **Sistema de Inteligencia Operativa Em
 
 ---
 
-## 🛠️ Requisitos del Sistema
+## 🛠️ Requisitos
 
-### 📋 Requisitos Mínimos
+### 📋 Requisitos Mínimos del Sistema
 
 | Componente  | Versión | Notas                         |
 |------------ |---------|-------------------------------|
