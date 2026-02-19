@@ -34,7 +34,6 @@ No es solo un "asistente de chat" - es un **Sistema de Inteligencia Operativa Em
 - [🎯 Visión Transformadora](#-visión-transformadora)
 - [🚀 Características Revolucionarias](#-características-revolucionarias)
 - [🏗️ Arquitectura MoE Kaizen](#-arquitectura-moe-kaizen)
-- [🛠️ Requisitos del Sistema](#-requisitos-del-sistema)
 - [📦 Instalación](#-instalación)
 - [⚙️ Configuración](#-configuración)
 - [🤖 Uso del Sistema](#-uso-del-sistema)
@@ -657,6 +656,7 @@ Para uso en software propietario sin las restricciones de la AGPL, contacte al a
 **Pedro Mencías**  
 *Desarrollador & Soluciones en IA*
 
+[![PortFolio](https://img.shields.io/badge/Portfolio-@pedromencias-orange?logo=netlify)](https://pedromencias.netlify.app/)
 [![GitHub](https://img.shields.io/badge/GitHub-@Charran78-181717?logo=github)](https://github.com/Charran78)  
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-MiPerfil-blue?logo=linkedin)](https://www.linkedin.com/in/pedro-menc%C3%ADas-68223336b/)  
 [![Email](https://img.shields.io/badge/Email-Contacto-red?logo=gmail)](mailto:beyond.digital.web@gmail.com)
